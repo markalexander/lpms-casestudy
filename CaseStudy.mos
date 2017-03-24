@@ -1,0 +1,88 @@
+!@encoding CP1252
+model EPower
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+
+declarations
+Emiss:			set of string
+Source:			set of string
+Times:			set of integer	
+PeriodLength: 	array(Times) of real
+Demand:			array(Times) of real
+
+! Source properties
+MaxOutput: 		array(Source) of real
+RunningCost: 	array(Source) of real
+IncreaseCost:	array(Source) of real
+
+Emissions: 		array(Emiss,Source) of real
+EmissionsLimit: array(Emiss) of real
+
+MaxHydroReserve:			real
+NaturalHydroInflow:			real
+HydroPowerEfficiencyFrac:	real
+ElectricityPrice:			real
+
+!Multipliers used in later analysis
+DemandMu: 	real
+WindMu: 	real
+
+!Decision variables:
+Generate: 		array(Source,Times) of mpvar !Energy output from each power source in each period (MW)
+Pump: 			array(Times) of mpvar !How much energy is pumped into reservoir (MW)
+HydroReserve: 	array(Times) of mpvar !How much water is stored at the end of the period in the reservoir (MWh)
+Increase: 		array(Source, Times) of mpvar 
+
+end-declarations
+
+initializations from "EPower.dat"
+Emiss Source Times PeriodLength Demand
+MaxOutput RunningCost IncreaseCost 
+Emissions EmissionsLimit MaxHydroReserve 
+NaturalHydroInflow HydroPowerEfficiencyFrac 
+ElectricityPrice DemandMu 
+end-initializations
+
+
+forall(t in Times) do
+
+	if t = 1 then HydroReserve(t)= HydroReserve(6) + (HydroPowerEfficiencyFrac*Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
+	else HydroReserve(t)= HydroReserve(t-1) + (HydroPowerEfficiencyFrac*Pump(t) + NaturalHydroInflow - Generate("Hydro",t))*PeriodLength(t)
+	end-if
+	
+	HydroReserveCS(t):= HydroReserve(t) <= MaxHydroReserve
+	
+	EnergySold(t):= sum(s in Source) Generate(s,t) - Pump(t)
+	DemandCS(t):= EnergySold(t) = Demand(t) !Meeting the demand
+	
+end-do
+
+forall(s in Source) do 
+	forall(t in Times) OutputCS(s,t):= Generate(s,t) <= MaxOutput(s) 
+	
+	TotalEnergyGenerated(s):= sum(t in Times) Generate(s,t)*PeriodLength(t) !Total energy generated from each source in MWh
+end-do
+
+!Meeting the emission limits
+forall(e in Emiss)
+	EmmissionCS(e):= sum(s in Source) TotalEnergyGenerated(s)*Emissions(e,s) <= EmissionsLimit(e)
+
+forall(s in Source, t in Times) do
+	if t = 1 then IncreaseCS(s,t):= Generate(s,t) <=  Generate(s,6) + Increase(s,t)
+	else IncreaseCS(s,t):= Generate(s,t) <= Generate(s,t-1) + Increase(s,t)
+	end-if
+	Increase(s,t) >= 0
+end-do	
+
+
+
+TotalIncreaseCost:= sum(s in Source, t in Times) Increase(s,t)*IncreaseCost(s)
+TotalRunningCost:= sum(s in Source) TotalEnergyGenerated(s)*RunningCost(s)
+
+TotalIncome:= sum(t in Times) EnergySold(t)*PeriodLength(t)*ElectricityPrice
+
+TotalProfit:= TotalIncome - TotalRunningCost - TotalIncreaseCost
+
+maximize(TotalProfit)
+
+end-model
