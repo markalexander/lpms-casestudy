@@ -75,7 +75,6 @@ forall(s in Source, t in Times) do
 end-do	
 
 
-
 TotalIncreaseCost:= sum(s in Source, t in Times) Increase(s,t)*IncreaseCost(s)
 TotalRunningCost:= sum(s in Source) TotalEnergyGenerated(s)*RunningCost(s)
 
@@ -85,4 +84,49 @@ TotalProfit:= TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 maximize(TotalProfit)
 
+writeln("Current profit: ",getsol(TotalProfit))
+writeln
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!! Stricter CO2 limits !!!!!!!!!!!
+
+writeln("Stricter CO2 limits")
+write(strfmt("Source expanded",20), strfmt("Profit",15),"|")
+forall(s in Source) write(strfmt(s,10))
+write("|", strfmt("CO2",6))
+writeln
+
+TotalCO2Emmission:= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)
+EmmissionCS("CO2"):= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")*0.5
+
+
+forall(s in Source) do 
+
+	! This block of initializations restores original values 
+	initializations from "Epower.dat"
+	MaxOutput NaturalHydroInflow MaxHydroReserve
+	end-initializations
+
+	if s = "Hydro" then 
+		NaturalHydroInflow:= NaturalHydroInflow*1.5
+		MaxHydroReserve:= MaxHydroReserve*1.5
+	end-if
+	
+	MaxOutput(s):= MaxOutput(s)+1000
+	
+	forall(so in Source, t in Times) do
+		HydroReserveCS(t):= HydroReserve(t) <= MaxHydroReserve
+		OutputCS(so,t):= Generate(so,t) <= MaxOutput(so)
+	end-do
+	
+	maximize(TotalProfit)
+	write(strfmt(s,15),'     ', strfmt(getsol(TotalProfit),15),'|')
+	forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)),10))
+	write("|",getsol(TotalCO2Emmission))
+	writeln
+	
+	 
+
+end-do	
+	
 end-model
