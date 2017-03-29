@@ -40,7 +40,7 @@ Emiss Source Times PeriodLength Demand
 MaxOutput RunningCost IncreaseCost 
 Emissions EmissionsLimit MaxHydroReserve 
 NaturalHydroInflow HydroPowerEfficiencyFrac 
-ElectricityPrice DemandMu 
+ElectricityPrice DemandMu WindMu
 end-initializations
 
 
@@ -82,23 +82,64 @@ TotalIncome:= sum(t in Times) EnergySold(t)*PeriodLength(t)*ElectricityPrice
 
 TotalProfit:= TotalIncome - TotalRunningCost - TotalIncreaseCost
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!! Base case !!!!!!!!!!!!!!!!!!!
+
 maximize(TotalProfit)
 
-writeln("Current profit: ",getsol(TotalProfit))
+writeln("BASE CASE")
+writeln("Base case profit: ",getsol(TotalProfit))
 writeln
+writeln("Optimal generation schedule")
+write("            ")
+forall(t in Times) write(strfmt(t,8))
+forall(s in Source) do
+	writeln
+	write(strfmt(s,13))
+	forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
+end-do 
+writeln
+writeln
+write("Reservoir lvl")
+forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!! Stricter CO2 limits !!!!!!!!!!!
-
+writeln
+writeln
 writeln("Stricter CO2 limits")
-write(strfmt("Source expanded",20), strfmt("Profit",15),"|")
-forall(s in Source) write(strfmt(s,10))
-write("|", strfmt("CO2",6))
 writeln
 
 TotalCO2Emmission:= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)
 EmmissionCS("CO2"):= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")*0.5
 
+maximize(TotalProfit)
+
+writeln("New profit: ",getsol(TotalProfit))
+writeln
+writeln("Optimal generation schedule")
+write("            ")
+forall(t in Times) write(strfmt(t,8))
+forall(s in Source) do
+	writeln
+	write(strfmt(s,13))
+	forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
+end-do 
+writeln
+writeln
+write("Reservoir lvl")
+forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!! Which power source to expand? !!!!!!
+writeln
+writeln
+writeln("Which source to expand?")
+write(strfmt("Source expanded",20), strfmt("Profit",15),"|")
+forall(s in Source) write(strfmt(s,10))
+write("|", strfmt("CO2",6))
+writeln
 
 forall(s in Source) do 
 
@@ -125,8 +166,46 @@ forall(s in Source) do
 	write("|",getsol(TotalCO2Emmission))
 	writeln
 	
-	 
+end-do
 
-end-do	
+!!!! Reset constraints to the original values !!!!
+initializations from "Epower.dat"
+	MaxOutput NaturalHydroInflow MaxHydroReserve
+end-initializations	
+
+EmmissionCS("CO2"):= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
+forall(s in Source, t in Times) do
+	HydroReserveCS(t):= HydroReserve(t) <= MaxHydroReserve
+	OutputCS(s,t):= Generate(s,t) <= MaxOutput(s)
+end-dos
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!! Multipliers introduced!!!!!!!!!!!!!
+
+MaxOutput("Wind"):= MaxOutput("Wind") * WindMu
+forall(t in Times) do
+	OutputCS("Wind",t):= Generate("Wind",t) <= MaxOutput("Wind")
+	Demand(t):= Demand(t) * DemandMu
+	DemandCS(t):= EnergySold(t) = Demand(t)
+end-do
+
+maximize(TotalProfit)
+
+writeln
+writeln("CASE WITH OUR GROUP's MULTIPLIERS")
+writeln("Base case profit: ",getsol(TotalProfit))
+writeln
+writeln("Optimal generation schedule")
+write("            ")
+forall(t in Times) write(strfmt(t,8))
+forall(s in Source) do
+	writeln
+	write(strfmt(s,13))
+	forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
+end-do 
+writeln
+writeln
+write("Reservoir lvl")
+forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
 	
 end-model

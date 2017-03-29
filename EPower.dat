@@ -10,7 +10,7 @@ PeriodLength:	[6		2		8		4		2		2]
 Demand:			[12000	18000	20000	22000	20000	18000]
 
 ! Source properties
-MaxOutput:      [6000 6000	5000	5000	2000	20000]
+MaxOutput:      [6000 6000	5000	5500	2000	20000]
 RunningCost:    [40		30	50		2		5		100]
 IncreaseCost:   [80		60	1e+10	1	 	5    	50]
 
@@ -24,5 +24,5 @@ NaturalHydroInflow:			[400]
 HydroPowerEfficiencyFrac:	[0.8]
 ElectricityPrice:			[ 35]
 
-DemandMu: [1.0]
-WindMu: [1.0]
+DemandMu: [1.2]
+WindMu: [1.2]
