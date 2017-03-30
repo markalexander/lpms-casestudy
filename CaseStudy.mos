@@ -59,11 +59,11 @@ end-initializations
 
 ! Hydro reserve
 forall(t in Times) do
-	
+	! Hydro reserve must be consistent across time periods
 	if t = 1 then
-		HydroReserve(t) = HydroReserve(6) + (HydroPowerEfficiencyFrac*Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
+		HydroReserve(t) = HydroReserve(6) + (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
 	else
-		HydroReserve(t) = HydroReserve(t-1) + (HydroPowerEfficiencyFrac*Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
+		HydroReserve(t) = HydroReserve(t-1) + (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
 	end-if
 	
 	! Hydro reserve must not exceed maximum
@@ -72,12 +72,11 @@ forall(t in Times) do
 	! Energy sold must meet the demand exactly
 	EnergySold(t) := sum(s in Source) Generate(s,t) - Pump(t)
 	DemandCS(t) := EnergySold(t) = Demand(t)
-	
 end-do
 
-! Output
+! Output generated
 forall(s in Source) do
-	! Output level at t must not exceed max output
+	! Output generation level at t must not exceed max output
 	forall(t in Times) OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
 	
 	! Total energy generated from each source in MWh
@@ -92,18 +91,21 @@ forall(e in Emiss)
 
 ! Increases
 forall(s in Source, t in Times) do
+	! Generation must be consistent with previous increase
 	if t = 1 then
 		IncreaseCS(s,t) := Generate(s,t) <=  Generate(s,6) + Increase(s,t)
 	else
 		IncreaseCS(s,t) := Generate(s,t) <= Generate(s,t-1) + Increase(s,t)
 	end-if
+	
+	! Increase must be non-negative
 	Increase(s,t) >= 0
 end-do	
 
 ! Objective
-TotalIncreaseCost := sum(s in Source, t in Times) Increase(s,t)*IncreaseCost(s)
-TotalRunningCost := sum(s in Source) TotalEnergyGenerated(s)*RunningCost(s)
-TotalIncome := sum(t in Times) EnergySold(t)*PeriodLength(t)*ElectricityPrice
+TotalIncreaseCost := sum(s in Source, t in Times) Increase(s,t) * IncreaseCost(s)
+TotalRunningCost := sum(s in Source) TotalEnergyGenerated(s) * RunningCost(s)
+TotalIncome := sum(t in Times) EnergySold(t) * PeriodLength(t) * ElectricityPrice
 TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 
@@ -112,8 +114,8 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 maximize(TotalProfit)
 
-writeln("BASE CASE")
-writeln("Base case profit: ",getsol(TotalProfit))
+writeln("\nBASE CASE\n", "=========\n")
+writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
 writeln
 writeln("Optimal generation schedule")
 write("            ")
@@ -129,22 +131,17 @@ write("Reservoir lvl")
 forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
 
 
-
-
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!! Stricter CO2 limits !!!!!!!!!!!
-writeln
-writeln
-writeln("Stricter CO2 limits")
-writeln
 
-TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)
-EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")*0.5
+writeln("\n\n\nSTRICTER CO2 LIMITS\n", "===================\n")
+
+TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
+EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 
 maximize(TotalProfit)
 
-writeln("New profit: ",getsol(TotalProfit))
+writeln("New profit: £", strfmt(getobjval/1e6,0,3), " million.")
 writeln
 writeln("Optimal generation schedule")
 write("            ")
@@ -162,11 +159,10 @@ forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!! Which power source to expand? !!!!!!
-
 writeln
 writeln
-writeln("Which source to expand?")
-write(strfmt("Source expanded",20), strfmt("Profit",15),"|")
+writeln("\n\n\nSOURCE EXPANSION DECISION\n", "=========================\n")
+write(strfmt("Source expanded",20), strfmt("Profit",15), "|")
 forall(s in Source) write(strfmt(s,10))
 write("|", strfmt("CO2",6))
 writeln
@@ -175,7 +171,7 @@ forall(s in Source) do
 
 	! This block of initializations restores original values 
 	initializations from "Epower.dat"
-	MaxOutput NaturalHydroInflow MaxHydroReserve
+		MaxOutput NaturalHydroInflow MaxHydroReserve
 	end-initializations
 
 	if s = "Hydro" then 
@@ -203,27 +199,28 @@ initializations from "Epower.dat"
 	MaxOutput NaturalHydroInflow MaxHydroReserve
 end-initializations	
 
-EmmissionCS("CO2"):= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
+EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
 forall(s in Source, t in Times) do
-	HydroReserveCS(t):= HydroReserve(t) <= MaxHydroReserve
-	OutputCS(s,t):= Generate(s,t) <= MaxOutput(s)
+	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
+	OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
 end-do
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!! Multipliers introduced!!!!!!!!!!!!!
 
-MaxOutput("Wind"):= MaxOutput("Wind") * WindMu
+MaxOutput("Wind") := MaxOutput("Wind") * WindMu
 forall(t in Times) do
-	OutputCS("Wind",t):= Generate("Wind",t) <= MaxOutput("Wind")
-	Demand(t):= Demand(t) * DemandMu
-	DemandCS(t):= EnergySold(t) = Demand(t)
+	OutputCS("Wind",t) := Generate("Wind",t) <= MaxOutput("Wind")
+	Demand(t) := Demand(t) * DemandMu
+	DemandCS(t) := EnergySold(t) = Demand(t)
 end-do
 
 maximize(TotalProfit)
 
 writeln
-writeln("CASE WITH OUR GROUP's MULTIPLIERS")
-writeln("Base case profit: ",getsol(TotalProfit))
+writeln("\n\n\nCUSTOM MULTIPLIERS\n", "==================\n")
+writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
 writeln
 writeln("Optimal generation schedule")
 write("            ")
