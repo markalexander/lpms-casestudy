@@ -54,22 +54,24 @@ end-initializations
 
 
 !
-! Base case model
+! Basic model
 !
 
 ! Hydro reserve
 forall(t in Times) do
-	writeln(t-1)
+	
 	if t = 1 then
 		HydroReserve(t) = HydroReserve(6) + (HydroPowerEfficiencyFrac*Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
 	else
 		HydroReserve(t) = HydroReserve(t-1) + (HydroPowerEfficiencyFrac*Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
 	end-if
 	
+	! Hydro reserve must not exceed maximum
 	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
 	
+	! Energy sold must meet the demand exactly
 	EnergySold(t) := sum(s in Source) Generate(s,t) - Pump(t)
-	DemandCS(t) := EnergySold(t) = Demand(t) ! Meeting the demand
+	DemandCS(t) := EnergySold(t) = Demand(t)
 	
 end-do
 
