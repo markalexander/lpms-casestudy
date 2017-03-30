@@ -2,6 +2,10 @@
 model EPower
 uses "mmxprs";
 
+!
+! Declare variables
+!
+
 declarations
 	
 	Source:                   set of string
@@ -38,6 +42,42 @@ declarations
 	Increase:                 array(Source,Times) of mpvar  ! Increase from source s at time t
 
 end-declarations
+
+
+!
+! Declare procedures
+!
+
+procedure print_table(title:string)
+	colwidth := 13
+	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
+	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
+	writeln(strfmt("Optimal generation schedule", colwidth*4))
+	writeln
+	write(strfmt(" ", colwidth))
+	forall(t in Times) write(strfmt(t, colwidth))
+	writeln
+	writeln("-------------------------------------------------------------------------------------------")
+	forall(s in Source) do
+		write(strfmt(s, colwidth))
+		forall(t in Times) write(strfmt(getsol(Generate(s,t)), colwidth))
+		writeln
+	end-do 
+	
+	writeln("-------------------------------------------------------------------------------------------")
+	!write(strfmt("TOTAL", colwidth))
+	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
+	
+	!writeln
+	!write(strfmt("Demand", colwidth))
+	!forall(t in Times) write(strfmt(getsol(Demand(t)), colwidth))
+	
+	!writeln
+	!writeln
+	write(strfmt("Reservoir lvl", colwidth))
+	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), colwidth))
+	writeln
+end-procedure
 
 
 !
@@ -107,42 +147,6 @@ TotalIncreaseCost := sum(s in Source, t in Times) Increase(s,t) * IncreaseCost(s
 TotalRunningCost := sum(s in Source) TotalEnergyGenerated(s) * RunningCost(s)
 TotalIncome := sum(t in Times) EnergySold(t) * PeriodLength(t) * ElectricityPrice
 TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
-
-
-!
-! DEFINE STANDARD TABLE OUTPUT PROCEDURE
-!
-
-procedure print_table(title:string)
-	colwidth := 13
-	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
-	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
-	writeln(strfmt("Optimal generation schedule", colwidth*4))
-	writeln
-	write(strfmt(" ", colwidth))
-	forall(t in Times) write(strfmt(t, colwidth))
-	writeln
-	writeln("-------------------------------------------------------------------------------------------")
-	forall(s in Source) do
-		write(strfmt(s, colwidth))
-		forall(t in Times) write(strfmt(getsol(Generate(s,t)), colwidth))
-		writeln
-	end-do 
-	
-	writeln("-------------------------------------------------------------------------------------------")
-	!write(strfmt("TOTAL", colwidth))
-	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
-	
-	!writeln
-	!write(strfmt("Demand", colwidth))
-	!forall(t in Times) write(strfmt(getsol(Demand(t)), colwidth))
-	
-	!writeln
-	!writeln
-	write(strfmt("Reservoir lvl", colwidth))
-	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), colwidth))
-	writeln
-end-procedure
 
 
 !
