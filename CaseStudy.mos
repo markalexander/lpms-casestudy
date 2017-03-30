@@ -40,7 +40,7 @@ declarations
 	Pump:                     array(Times) of mpvar  ! Energy pumped to reservoir at time t (MW)
 	HydroReserve:             array(Times) of mpvar  ! Water remaining in reservoir at end of time t (MWh)
 	Increase:                 array(Source,Times) of mpvar  ! Increase from source s at time t
-
+	
 end-declarations
 
 
@@ -90,6 +90,27 @@ procedure print_table(title:string)
 	write(strfmt("Reservoir lvl", colwidth))
 	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), colwidth))
 	writeln
+end-procedure
+
+! Output a standard CSV file for the model
+! Again saves on code repition.
+procedure create_csv(filename:string)
+	fopen(filename, F_OUTPUT)
+	! Headers
+	write('Time')
+	forall(s in Source) do
+		write(',', s)
+	end-do
+	writeln
+	! Data
+	forall(t in Times) do
+		write(t)
+		forall(s in Source) do
+			write(',', getsol(Generate(s,t)))
+		end-do
+		writeln
+	end-do
+	fclose(F_OUTPUT)
 end-procedure
 
 
@@ -161,6 +182,7 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 maximize(TotalProfit)
 print_table("BASE CASE")
+create_csv("output/base.csv")
 
 
 !
@@ -171,6 +193,7 @@ TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 maximize(TotalProfit)
 print_table("STRICTER CO2 LIMITS")
+create_csv("output/co2.csv")
 
 
 !
@@ -234,5 +257,6 @@ end-do
 
 maximize(TotalProfit)
 print_table("CUSTOM MULTIPLIERS")
+create_csv("output/multipliers.csv")
 
 end-model
