@@ -48,6 +48,8 @@ end-declarations
 ! Declare procedures
 !
 
+! Print a standard table output for the main model
+! Saves us repeating this code for every iteration
 procedure print_table(title:string)
 	colwidth := 13
 	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
