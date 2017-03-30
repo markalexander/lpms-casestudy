@@ -35,7 +35,7 @@ declarations
 	Generate:                 array(Source,Times) of mpvar  ! Energy output from source s at time t (MW)
 	Pump:                     array(Times) of mpvar  ! Energy pumped to reservoir at time t (MW)
 	HydroReserve:             array(Times) of mpvar  ! Water remaining in reservoir at end of time t (MWh)
-	Increase:                 array(Source, Times) of mpvar  ! Increase from source s at time t
+	Increase:                 array(Source,Times) of mpvar  ! Increase from source s at time t
 
 end-declarations
 
@@ -87,7 +87,7 @@ end-do
 forall(e in Emiss)
 	! Emissions of each emittant must not exceed limit
 	EmmissionCS(e) :=
-		sum(s in Source) TotalEnergyGenerated(s)*Emissions(e,s) <= EmissionsLimit(e)
+		sum(s in Source) TotalEnergyGenerated(s) * Emissions(e,s) <= EmissionsLimit(e)
 
 ! Increases
 forall(s in Source, t in Times) do
@@ -116,12 +116,11 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 procedure print_table(title:string)
 	colwidth := 13
 	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
-	writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
-	writeln
+	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
 	writeln(strfmt("Optimal generation schedule", colwidth*4))
 	writeln
 	write(strfmt(" ", colwidth))
-	forall(t in Times) write(strfmt(t,colwidth))
+	forall(t in Times) write(strfmt(t, colwidth))
 	writeln
 	writeln("-------------------------------------------------------------------------------------------")
 	forall(s in Source) do
@@ -169,43 +168,41 @@ print_table("STRICTER CO2 LIMITS")
 !
 
 writeln("\n\n\nSOURCE EXPANSION DECISION\n", "=========================\n")
-write(strfmt("Source expanded",20), strfmt("Profit",15), "|")
-forall(s in Source) write(strfmt(s,10))
-write("|", strfmt("CO2",6))
+write(strfmt("Expand:", 13), strfmt("Profit (£m)", 13))
+forall(s in Source) write(strfmt(s, 10))
+write(strfmt("CO2", 10))
 writeln
 
-forall(s in Source) do 
-
-	! This block of initializations restores original values 
-	initializations from "Epower.dat"
-		MaxOutput NaturalHydroInflow MaxHydroReserve
-	end-initializations
-
+forall(s in Source) do
+	! Increase the max output of this source by 1 GW
+	MaxOutput(s) := MaxOutput(s) + 1000
+	
+	! Additional increases for hydro
 	if s = "Hydro" then 
-		NaturalHydroInflow := NaturalHydroInflow*1.5
-		MaxHydroReserve := MaxHydroReserve*1.5
+		NaturalHydroInflow := NaturalHydroInflow * 1.5
+		MaxHydroReserve := MaxHydroReserve * 1.5
 	end-if
 	
-	MaxOutput(s) := MaxOutput(s)+1000
-	
+	! Fix constraints
 	forall(so in Source, t in Times) do
 		HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
 		OutputCS(so,t) := Generate(so,t) <= MaxOutput(so)
 	end-do
 	
+	! Reoptimize
 	maximize(TotalProfit)
 	
-	write(strfmt(s,15),'     ', strfmt(getobjval, 15), '|')
-	forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)),10))
-	write("|",getsol(TotalCO2Emmission))
+	! Output
+	write(strfmt(s, 13), "      ", strfmt(getobjval/1e6, 0, 3))
+	forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)), 10))
+	write("|", getsol(TotalCO2Emmission))
 	writeln
 	
+	! Reset data for re-use
+	initializations from "EPower.dat"
+		MaxOutput NaturalHydroInflow MaxHydroReserve
+	end-initializations
 end-do
-
-!!!! Reset constraints to the original values !!!!
-initializations from "Epower.dat"
-	MaxOutput NaturalHydroInflow MaxHydroReserve
-end-initializations	
 
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
 forall(s in Source, t in Times) do
