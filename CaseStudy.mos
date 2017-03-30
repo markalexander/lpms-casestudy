@@ -113,7 +113,8 @@ end-initializations
 ! Hydro reserves and demand
 forall(t in Times) do
 	! Hydro reserve must be consistent across time periods
-	HydroReserve(t) = HydroReserve(getprevperiod(t)) + (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
+	NetHydroFlow(t) := (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
+	HydroReserve(t) = HydroReserve(getprevperiod(t)) + NetHydroFlow(t)
 	
 	! Hydro reserve must not exceed maximum
 	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
