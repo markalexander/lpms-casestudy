@@ -177,7 +177,7 @@ EmmissionCS("CO2"):= sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)
 forall(s in Source, t in Times) do
 	HydroReserveCS(t):= HydroReserve(t) <= MaxHydroReserve
 	OutputCS(s,t):= Generate(s,t) <= MaxOutput(s)
-end-dos
+end-do
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!! Multipliers introduced!!!!!!!!!!!!!
