@@ -57,7 +57,7 @@ end-initializations
 ! Basic model
 !
 
-! Hydro reserve
+! Hydro reserves and demand
 forall(t in Times) do
 	! Hydro reserve must be consistent across time periods
 	if t = 1 then
@@ -115,11 +115,12 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 procedure print_table(title:string)
 	colwidth := 13
-	writeln("\n\n\n", title, "\n", "===================\n")
+	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
 	writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
 	writeln
 	writeln(strfmt("Optimal generation schedule", colwidth*4))
 	writeln
+	write(strfmt(" ", colwidth))
 	forall(t in Times) write(strfmt(t,colwidth))
 	writeln
 	writeln("-------------------------------------------------------------------------------------------")
