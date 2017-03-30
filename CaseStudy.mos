@@ -113,50 +113,60 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 ! DEFINE STANDARD TABLE OUTPUT PROCEDURE
 !
 
-procedure print_table
+procedure print_table(title:string)
+	colwidth := 13
+	writeln("\n\n\n", title, "\n", "===================\n")
 	writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
 	writeln
-	writeln("Optimal generation schedule")
-	write("            ")
-	forall(t in Times) write(strfmt(t,8))
+	writeln(strfmt("Optimal generation schedule", colwidth*4))
+	writeln
+	forall(t in Times) write(strfmt(t,colwidth))
+	writeln
+	writeln("-------------------------------------------------------------------------------------------")
 	forall(s in Source) do
+		write(strfmt(s, colwidth))
+		forall(t in Times) write(strfmt(getsol(Generate(s,t)), colwidth))
 		writeln
-		write(strfmt(s,13))
-		forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
 	end-do 
+	
+	writeln("-------------------------------------------------------------------------------------------")
+	!write(strfmt("TOTAL", colwidth))
+	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
+	
+	!writeln
+	!write(strfmt("Demand", colwidth))
+	!forall(t in Times) write(strfmt(getsol(Demand(t)), colwidth))
+	
+	!writeln
+	!writeln
+	write(strfmt("Reservoir lvl", colwidth))
+	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), colwidth))
 	writeln
-	writeln
-	write("Reservoir lvl")
-	forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
 end-procedure
 
 
 !
-! PRINT BASE CASE
+! PRINT 'BASE' CASE
 !
 
 maximize(TotalProfit)
-writeln("\nBASE CASE\n", "=========\n")
-print_table
+print_table("BASE CASE")
 
 
 !
-! PRINT STRICTER CO2 LIMITS CASE
+! PRINT 'STRICTER CO2 LIMITS' CASE
 !
 
-writeln("\n\n\nSTRICTER CO2 LIMITS\n", "===================\n")
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 maximize(TotalProfit)
-print_table
+print_table("STRICTER CO2 LIMITS")
 
 
 !
-! PRINT SOURCE EXPANSION DECISION TABLE
+! PRINT 'SOURCE EXPANSION DECISION' TABLE
 !
 
-writeln
-writeln
 writeln("\n\n\nSOURCE EXPANSION DECISION\n", "=========================\n")
 write(strfmt("Source expanded",20), strfmt("Profit",15), "|")
 forall(s in Source) write(strfmt(s,10))
@@ -171,19 +181,20 @@ forall(s in Source) do
 	end-initializations
 
 	if s = "Hydro" then 
-		NaturalHydroInflow:= NaturalHydroInflow*1.5
-		MaxHydroReserve:= MaxHydroReserve*1.5
+		NaturalHydroInflow := NaturalHydroInflow*1.5
+		MaxHydroReserve := MaxHydroReserve*1.5
 	end-if
 	
-	MaxOutput(s):= MaxOutput(s)+1000
+	MaxOutput(s) := MaxOutput(s)+1000
 	
 	forall(so in Source, t in Times) do
-		HydroReserveCS(t):= HydroReserve(t) <= MaxHydroReserve
-		OutputCS(so,t):= Generate(so,t) <= MaxOutput(so)
+		HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
+		OutputCS(so,t) := Generate(so,t) <= MaxOutput(so)
 	end-do
 	
 	maximize(TotalProfit)
-	write(strfmt(s,15),'     ', strfmt(getsol(TotalProfit),15),'|')
+	
+	write(strfmt(s,15),'     ', strfmt(getobjval, 15), '|')
 	forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)),10))
 	write("|",getsol(TotalCO2Emmission))
 	writeln
@@ -203,7 +214,7 @@ end-do
 
 
 !
-! PRINT CUSTOM GROUP MULTIPLIERS CASE
+! PRINT 'CUSTOM MULTIPLIERS' CASE
 !
 
 MaxOutput("Wind") := MaxOutput("Wind") * WindMu
@@ -214,7 +225,6 @@ forall(t in Times) do
 end-do
 
 maximize(TotalProfit)
-writeln("\n\n\nCUSTOM MULTIPLIERS\n", "==================\n")
-print_table
+print_table("CUSTOM MULTIPLIERS")
 
 end-model
