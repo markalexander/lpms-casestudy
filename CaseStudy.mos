@@ -109,56 +109,52 @@ TotalIncome := sum(t in Times) EnergySold(t) * PeriodLength(t) * ElectricityPric
 TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!! Base case !!!!!!!!!!!!!!!!!!!
+!
+! DEFINE STANDARD TABLE OUTPUT PROCEDURE
+!
+
+procedure print_table
+	writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
+	writeln
+	writeln("Optimal generation schedule")
+	write("            ")
+	forall(t in Times) write(strfmt(t,8))
+	forall(s in Source) do
+		writeln
+		write(strfmt(s,13))
+		forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
+	end-do 
+	writeln
+	writeln
+	write("Reservoir lvl")
+	forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
+end-procedure
+
+
+!
+! PRINT BASE CASE
+!
 
 maximize(TotalProfit)
-
 writeln("\nBASE CASE\n", "=========\n")
-writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
-writeln
-writeln("Optimal generation schedule")
-write("            ")
-forall(t in Times) write(strfmt(t,8))
-forall(s in Source) do
-	writeln
-	write(strfmt(s,13))
-	forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
-end-do 
-writeln
-writeln
-write("Reservoir lvl")
-forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
+print_table
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!! Stricter CO2 limits !!!!!!!!!!!
+!
+! PRINT STRICTER CO2 LIMITS CASE
+!
 
 writeln("\n\n\nSTRICTER CO2 LIMITS\n", "===================\n")
-
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
-
 maximize(TotalProfit)
-
-writeln("New profit: £", strfmt(getobjval/1e6,0,3), " million.")
-writeln
-writeln("Optimal generation schedule")
-write("            ")
-forall(t in Times) write(strfmt(t,8))
-forall(s in Source) do
-	writeln
-	write(strfmt(s,13))
-	forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
-end-do 
-writeln
-writeln
-write("Reservoir lvl")
-forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
+print_table
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!! Which power source to expand? !!!!!!
+!
+! PRINT SOURCE EXPANSION DECISION TABLE
+!
+
 writeln
 writeln
 writeln("\n\n\nSOURCE EXPANSION DECISION\n", "=========================\n")
@@ -206,8 +202,9 @@ forall(s in Source, t in Times) do
 end-do
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!! Multipliers introduced!!!!!!!!!!!!!
+!
+! PRINT CUSTOM GROUP MULTIPLIERS CASE
+!
 
 MaxOutput("Wind") := MaxOutput("Wind") * WindMu
 forall(t in Times) do
@@ -217,22 +214,7 @@ forall(t in Times) do
 end-do
 
 maximize(TotalProfit)
-
-writeln
 writeln("\n\n\nCUSTOM MULTIPLIERS\n", "==================\n")
-writeln("Total profit: £", strfmt(getobjval/1e6,0,3), " million.")
-writeln
-writeln("Optimal generation schedule")
-write("            ")
-forall(t in Times) write(strfmt(t,8))
-forall(s in Source) do
-	writeln
-	write(strfmt(s,13))
-	forall(t in Times) write(strfmt(getsol(Generate(s,t)),8))
-end-do 
-writeln
-writeln
-write("Reservoir lvl")
-forall(t in Times) write(strfmt(getsol(HydroReserve(t)),8))
-	
+print_table
+
 end-model
