@@ -45,11 +45,22 @@ end-declarations
 
 
 !
-! Declare procedures
+! Declare procedures and functions
 !
 
-! Print a standard table output for the main model
-! Saves us repeating this code for every iteration
+! Get the index of the 'previous' time period for given current time period t.
+! Uses modular arithmetic to find the previous time period, looping around to the start
+! when given the end period.  This way we can freely extend the number of time periods
+! in the .dat file without changing the main model code. I.e. this is better style.
+! N.B. the in-built 'mod' operator is actually a 'remainder' operator and doesn't work
+! correctly with negative numbers.  Hence the explicit definition.
+function getprevperiod(t:integer):integer
+	n := getsize(Times)
+	returned := ((((t-2) mod n) + n) mod n) + 1
+end-function
+
+! Print a standard table output for the main model.
+! Saves us repeating this code for every variation of the model.
 procedure print_table(title:string)
 	colwidth := 13
 	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
@@ -102,11 +113,7 @@ end-initializations
 ! Hydro reserves and demand
 forall(t in Times) do
 	! Hydro reserve must be consistent across time periods
-	if t = 1 then
-		HydroReserve(t) = HydroReserve(6) + (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
-	else
-		HydroReserve(t) = HydroReserve(t-1) + (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
-	end-if
+	HydroReserve(t) = HydroReserve(getprevperiod(t)) + (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
 	
 	! Hydro reserve must not exceed maximum
 	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
@@ -134,11 +141,7 @@ forall(e in Emiss)
 ! Increases
 forall(s in Source, t in Times) do
 	! Generation must be consistent with previous increase
-	if t = 1 then
-		IncreaseCS(s,t) := Generate(s,t) <=  Generate(s,6) + Increase(s,t)
-	else
-		IncreaseCS(s,t) := Generate(s,t) <= Generate(s,t-1) + Increase(s,t)
-	end-if
+	IncreaseCS(s,t) := Generate(s,t) <= Generate(s,getprevperiod(t)) + Increase(s,t)
 	
 	! Increase must be non-negative
 	Increase(s,t) >= 0
