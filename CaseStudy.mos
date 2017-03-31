@@ -187,7 +187,7 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 maximize(TotalProfit)
 print_table("BASE CASE")
-create_csv("output/base.csv")
+!create_csv("output/base.csv")
 
 forall(s in Source, t in Times) do
 	LongTermPlan(s,t) := getsol(Generate(s,t))
@@ -203,7 +203,7 @@ TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 maximize(TotalProfit)
 print_table("STRICTER CO2 LIMITS")
-create_csv("output/co2.csv")
+!create_csv("output/co2.csv")
 
 
 !
@@ -287,6 +287,6 @@ end-do
 
 maximize(TotalProfit)
 print_table("CUSTOM MULTIPLIERS")
-create_csv("output/multipliers.csv")
+!create_csv("output/multipliers.csv")
 
 end-model
