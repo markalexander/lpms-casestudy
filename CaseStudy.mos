@@ -214,11 +214,13 @@ writeln
 
 forall(s in Source) do
 	
-	! Company is about to finish instalation of wind capacity (see FAQ)
-	MaxOutput("Wind") :=  MaxOutput("Wind") + 500 
-	
-	! Increase the max output of this source by 1 GW
-	MaxOutput(s) := MaxOutput(s) + 1000
+	if s = "Wind" then 
+		! Company is about to finish instalation of wind capacity (see FAQ)
+		MaxOutput("Wind") :=  MaxOutput("Wind") + 500 
+	else
+		! Increase the max output of this source by 1 GW
+		MaxOutput(s) := MaxOutput(s) + 1000
+	end-if
 	
 	! Additional increases for hydro
 	if s = "Hydro" then 
