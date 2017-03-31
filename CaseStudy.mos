@@ -145,7 +145,7 @@ forall(t in Times) do
 	DemandCS(t) := EnergySold(t) = Demand(t)
 	
 	! Pumping capacity must not exceed maximum (see FAQ)
-	PumpCS(t) := Pump(t) <= MaxOutput("Hydro") * HydroPowerEfficiencyFrac
+	PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
 	
 end-do
 
@@ -168,7 +168,7 @@ forall(e in Emiss)
 forall(s in Source, t in Times) do
 	! Generation must be consistent with previous increase
 	IncreaseCS(s,t) := Generate(s,t) <= Generate(s,getprevperiod(t)) + Increase(s,t)
-end-do	
+	end-do	
 
 ! Objective
 TotalIncreaseCost := sum(s in Source, t in Times) Increase(s,t) * IncreaseCost(s)
@@ -232,7 +232,7 @@ forall(s in Source) do
 	forall(so in Source, t in Times) do
 		HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
 		OutputCS(so,t) := Generate(so,t) <= MaxOutput(so)
-		PumpCS(t) := Pump(t) <= MaxOutput("Hydro") * HydroPowerEfficiencyFrac
+		PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
 	end-do
 	
 	! Reoptimize
@@ -254,7 +254,7 @@ EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s
 forall(s in Source, t in Times) do
 	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
 	OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
-	PumpCS(t) := Pump(t) <= MaxOutput("Hydro") * HydroPowerEfficiencyFrac
+	PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
 end-do
 
 
