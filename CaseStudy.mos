@@ -143,6 +143,10 @@ forall(t in Times) do
 	! Energy sold must meet the demand exactly
 	EnergySold(t) := sum(s in Source) Generate(s,t) - Pump(t)
 	DemandCS(t) := EnergySold(t) = Demand(t)
+	
+	! Pumping capacity must not exceed maximum (see FAQ)
+	PumpCS(t) := Pump(t) <= MaxOutput("Hydro") * HydroPowerEfficiencyFrac
+	
 end-do
 
 ! Output generated
@@ -184,6 +188,11 @@ maximize(TotalProfit)
 print_table("BASE CASE")
 create_csv("output/base.csv")
 
+forall(s in Source, t in Times) do
+	LongTermPlan(s,t) := getsol(Generate(s,t))
+	LongTermPlanReservoire(t) := getsol(HydroReserve(t))
+end-do
+
 
 !
 ! PRINT 'STRICTER CO2 LIMITS' CASE
@@ -207,6 +216,10 @@ write(strfmt("CO2", 10))
 writeln
 
 forall(s in Source) do
+	
+	! Company is about to finish instalation of wind capacity (see FAQ)
+	MaxOutput("Wind") :=  MaxOutput("Wind") + 500 
+	
 	! Increase the max output of this source by 1 GW
 	MaxOutput(s) := MaxOutput(s) + 1000
 	
@@ -220,6 +233,7 @@ forall(s in Source) do
 	forall(so in Source, t in Times) do
 		HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
 		OutputCS(so,t) := Generate(so,t) <= MaxOutput(so)
+		PumpCS(t) := Pump(t) <= MaxOutput("Hydro") * HydroPowerEfficiencyFrac
 	end-do
 	
 	! Reoptimize
@@ -241,6 +255,7 @@ EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s
 forall(s in Source, t in Times) do
 	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
 	OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
+	PumpCS(t) := Pump(t) <= MaxOutput("Hydro") * HydroPowerEfficiencyFrac
 end-do
 
 
@@ -248,6 +263,18 @@ end-do
 ! PRINT 'CUSTOM MULTIPLIERS' CASE
 !
 
+! The values for nuclear, coal and gas in last period need to be consistent with
+! the long term plan. 
+forall(s in Source) do
+	if s = "Nuclear" or s = "Coal" or s = "Gas" then
+		LongTermCS(s) := Generate(s,getprevperiod(1)) = LongTermPlan(s,getprevperiod(1))
+	end-if
+end-do
+
+! Amount of water stored in reservouir in last period need to be consisten with long term plan
+LongTermReservoireCS := HydroReserve(getprevperiod(1)) = LongTermPlanReservoire(getprevperiod(1))
+
+	
 MaxOutput("Wind") := MaxOutput("Wind") * WindMu
 forall(t in Times) do
 	OutputCS("Wind",t) := Generate("Wind",t) <= MaxOutput("Wind")
