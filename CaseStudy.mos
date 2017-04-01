@@ -35,6 +35,9 @@ declarations
 	DemandMu:                 real
 	WindMu:                   real
 	
+	! Additional modelling values
+	EmissionsCreditPrice:     array(Emiss) of real
+	
 	! Decision variables
 	Generate:                 array(Source,Times) of mpvar  ! Energy output from source s at time t (MW)
 	Pump:                     array(Times) of mpvar  ! Energy pumped to reservoir at time t (MW)
@@ -124,6 +127,7 @@ initializations from "EPower.dat"
 	Emissions EmissionsLimit
 	MaxHydroReserve NaturalHydroInflow HydroPowerEfficiencyFrac ElectricityPrice
 	DemandMu WindMu
+	EmissionsCreditPrice
 end-initializations
 
 
@@ -159,16 +163,17 @@ forall(s in Source) do
 end-do
 
 ! Emissions
-forall(e in Emiss)
+forall(e in Emiss) do
 	! Emissions of each emittant must not exceed limit
-	EmmissionCS(e) :=
-		sum(s in Source) TotalEnergyGenerated(s) * Emissions(e,s) <= EmissionsLimit(e)
+	EmissionsGenerated(e) := sum(s in Source) TotalEnergyGenerated(s) * Emissions(e,s)
+	EmmissionCS(e) := EmissionsGenerated(e) <= EmissionsLimit(e)
+end-do
 
 ! Increases
 forall(s in Source, t in Times) do
 	! Generation must be consistent with previous increase
 	IncreaseCS(s,t) := Generate(s,t) <= Generate(s,getprevperiod(t)) + Increase(s,t)
-	end-do	
+end-do	
 
 ! Objective
 TotalIncreaseCost := sum(s in Source, t in Times) Increase(s,t) * IncreaseCost(s)
@@ -189,6 +194,8 @@ forall(s in Source, t in Times) do
 	LongTermPlan(s,t) := getsol(Generate(s,t))
 	LongTermPlanReservoire(t) := getsol(HydroReserve(t))
 end-do
+
+
 
 
 !
@@ -284,5 +291,26 @@ end-do
 maximize(TotalProfit)
 print_table("CUSTOM MULTIPLIERS")
 create_csv("output/multipliers.csv")
+
+
+!
+! EMISSION CREDITS MODEL
+!
+
+! Needs some fixing, e.g. need to reset some stuff from above
+! With base case model, this increases profit considerably.
+
+! Remove hard emissions constraints
+forall(e in Emiss) do
+	EmmissionCS(e) := 0
+end-do
+
+! Add emissions credit cost to objective
+TotalEmissionCreditCost :=
+	sum(e in Emiss) (EmissionsGenerated(e) - EmissionsLimit(e)) * EmissionsCreditPrice(e)
+TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
+
+maximize(TotalProfit)
+print_table("EMISSIONS MARKET")
 
 end-model

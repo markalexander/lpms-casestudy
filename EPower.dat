@@ -26,3 +26,7 @@ ElectricityPrice:			[ 35]
 
 DemandMu: [1.2]
 WindMu: [1.2]
+
+
+! Additional modelling
+EmissionsCreditPrice: [0.2 0.2]
