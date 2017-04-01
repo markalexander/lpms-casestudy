@@ -1,6 +1,7 @@
 !@encoding CP1252
 model EPower
 uses "mmxprs";
+uses "mmsystem";
 
 !
 ! Declare variables
@@ -66,21 +67,22 @@ end-function
 ! Saves us repeating this code for every variation of the model.
 procedure print_table(title:string)
 	colwidth := 13
-	writeln("\n\n\n", title, "\n", "===================\n")  ! "="*getsize(title)
+	writeln("\n\n\n", title, "\n", "="*getsize(title), "\n")
 	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
 	writeln(strfmt("Optimal generation schedule", colwidth*4))
 	writeln
 	write(strfmt(" ", colwidth))
 	forall(t in Times) write(strfmt(t, colwidth))
 	writeln
-	writeln("-------------------------------------------------------------------------------------------")
+	writeln("-"*colwidth*7)
 	forall(s in Source) do
 		write(strfmt(s, colwidth))
 		forall(t in Times) write(strfmt(getsol(Generate(s,t)), colwidth))
 		writeln
 	end-do 
 	
-	!writeln("-------------------------------------------------------------------------------------------")
+	
+	!writeln("-"*colwidth*7)
 	!write(strfmt("TOTAL", colwidth))
 	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
 	
