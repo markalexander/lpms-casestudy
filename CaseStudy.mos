@@ -3,8 +3,16 @@ model EPower
 uses "mmxprs";
 uses "mmsystem";
 
+
 !
-! Declare variables
+! Declare parameters
+!
+parameters
+	rcolwidth = 13        ! Table column width for generated reports
+end-parameters
+
+!
+! Declare model identifiers
 !
 
 declarations
@@ -65,35 +73,34 @@ end-function
 
 ! Print a standard table output for the main model.
 ! Saves us repeating this code for every variation of the model.
-procedure print_table(title:string)
-	colwidth := 13
+procedure generate_report(title:string)
 	writeln("\n\n\n", title, "\n", "="*getsize(title), "\n")
 	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
-	writeln(strfmt("Optimal generation schedule", colwidth*4))
+	writeln(strfmt("Optimal generation schedule", rcolwidth*4))
 	writeln
-	write(strfmt(" ", colwidth))
-	forall(t in Times) write(strfmt(t, colwidth))
+	write(strfmt(" ", rcolwidth))
+	forall(t in Times) write(strfmt(t, rcolwidth))
 	writeln
-	writeln("-"*colwidth*7)
+	writeln("-"*rcolwidth*7)
 	forall(s in Source) do
-		write(strfmt(s, colwidth))
-		forall(t in Times) write(strfmt(getsol(Generate(s,t)), colwidth))
+		write(strfmt(s, rcolwidth))
+		forall(t in Times) write(strfmt(getsol(Generate(s,t)), rcolwidth))
 		writeln
 	end-do 
 	
 	
-	!writeln("-"*colwidth*7)
+	!writeln("-"*rcolwidth*7)
 	!write(strfmt("TOTAL", colwidth))
 	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
 	
 	writeln
-	write(strfmt("Demand", colwidth))
-	forall(t in Times) write(strfmt(getsol(Demand(t)), colwidth))
+	write(strfmt("Demand", rcolwidth))
+	forall(t in Times) write(strfmt(getsol(Demand(t)), rcolwidth))
 	
 	writeln
 	writeln
-	write(strfmt("Reservoir lvl", colwidth))
-	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), colwidth))
+	write(strfmt("Reservoir lvl", rcolwidth))
+	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), rcolwidth))
 	writeln
 end-procedure
 
@@ -189,7 +196,7 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 !
 
 maximize(TotalProfit)
-print_table("BASE CASE")
+generate_report("BASE CASE")
 create_csv("output/base.csv")
 
 forall(s in Source, t in Times) do
@@ -207,7 +214,7 @@ end-do
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 maximize(TotalProfit)
-print_table("STRICTER CO2 LIMITS")
+generate_report("STRICTER CO2 LIMITS")
 create_csv("output/co2.csv")
 
 
@@ -291,7 +298,7 @@ forall(t in Times) do
 end-do
 
 maximize(TotalProfit)
-print_table("CUSTOM MULTIPLIERS")
+generate_report("CUSTOM MULTIPLIERS")
 create_csv("output/multipliers.csv")
 
 
@@ -313,6 +320,6 @@ TotalEmissionCreditCost :=
 TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
 
 maximize(TotalProfit)
-print_table("EMISSIONS MARKET")
+generate_report("EMISSIONS MARKET")
 
 end-model
