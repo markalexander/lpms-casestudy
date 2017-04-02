@@ -107,7 +107,7 @@ end-procedure
 ! Output a standard CSV file for the model
 ! Again saves on code repition.
 procedure create_csv(filename:string)
-	fopen(filename, F_OUTPUT)
+	!fopen(filename, F_OUTPUT)
 	! Headers
 	write('Time')
 	forall(s in Source) do
@@ -115,12 +115,18 @@ procedure create_csv(filename:string)
 	end-do
 	writeln
 	! Data
+	currtime := 0.0
 	forall(t in Times) do
-		write(t)
-		forall(s in Source) do
-			write(',', getsol(Generate(s,t)))
+		starttime := currtime
+		currtime += PeriodLength(t)
+		endtime := currtime
+		forall(h in [starttime, endtime]) do
+			write(h)
+			forall(s in Source) do
+				write(',', getsol(Generate(s,t)))
+			end-do
+			writeln
 		end-do
-		writeln
 	end-do
 	fclose(F_OUTPUT)
 end-procedure
