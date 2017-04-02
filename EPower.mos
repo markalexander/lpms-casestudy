@@ -76,7 +76,7 @@ end-function
 
 ! Print a standard table output for the main model.
 ! Saves us repeating this code for every variation of the model.
-procedure generate_report(title:string)
+procedure generate_report(title:string, tag:string)
 	writeln("\n\n\n", title, "\n", "="*getsize(title), "\n")
 	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
 	writeln(strfmt("Optimal generation schedule", ReportColWidth*4))
@@ -105,34 +105,33 @@ procedure generate_report(title:string)
 	write(strfmt("Reservoir lvl", ReportColWidth))
 	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), ReportColWidth))
 	writeln
-end-procedure
-
-! Output a standard CSV file for the model
-! Again saves on code repition.
-procedure create_csv(FileName:string)
-	makedir(ReportOutputDir)
-	fopen(ReportOutputDir + FileName + '.csv', F_OUTPUT)
-	! Headers
-	write('Time')
-	forall(s in Source) do
-		write(',', s)
-	end-do
-	writeln
-	! Data
-	currtime := 0.0
-	forall(t in Times) do
-		starttime := currtime
-		currtime += PeriodLength(t)
-		endtime := currtime
-		forall(h in [starttime, endtime]) do
-			write(h)
-			forall(s in Source) do
-				write(',', getsol(Generate(s,t)))
-			end-do
-			writeln
+	
+	! Output a standard CSV file for the model
+	if ReportGenCSV then
+		makedir(ReportOutputDir)
+		fopen(ReportOutputDir + tag + '.csv', F_OUTPUT)
+		! Headers
+		write('Time')
+		forall(s in Source) do
+			write(',', s)
 		end-do
-	end-do
-	fclose(F_OUTPUT)
+		writeln
+		! Data
+		currtime := 0.0
+		forall(t in Times) do
+			starttime := currtime
+			currtime += PeriodLength(t)
+			endtime := currtime
+			forall(h in [starttime, endtime]) do
+				write(h)
+				forall(s in Source) do
+					write(',', getsol(Generate(s,t)))
+				end-do
+				writeln
+			end-do
+		end-do
+		fclose(F_OUTPUT)
+	end-if
 end-procedure
 
 
@@ -206,8 +205,7 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 !
 
 maximize(TotalProfit)
-generate_report("BASE CASE")
-create_csv("base")
+generate_report("BASE CASE", 'base')
 
 forall(s in Source, t in Times) do
 	LongTermPlan(s,t) := getsol(Generate(s,t))
@@ -224,8 +222,7 @@ end-do
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 maximize(TotalProfit)
-generate_report("STRICTER CO2 LIMITS")
-create_csv("co2")
+generate_report("STRICTER CO2 LIMITS", 'co2')
 
 
 !
@@ -308,8 +305,7 @@ forall(t in Times) do
 end-do
 
 maximize(TotalProfit)
-generate_report("CUSTOM MULTIPLIERS")
-create_csv("multipliers")
+generate_report("CUSTOM MULTIPLIERS", 'multipliers')
 
 
 !
@@ -330,6 +326,6 @@ TotalEmissionCreditCost :=
 TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
 
 maximize(TotalProfit)
-generate_report("EMISSIONS MARKET")
+generate_report("EMISSIONS MARKET", 'emarket')
 
 end-model
