@@ -3,12 +3,15 @@ model EPower
 uses "mmxprs";
 uses "mmsystem";
 
-
 !
 ! Declare parameters
 !
+
 parameters
-	rcolwidth = 13        ! Table column width for generated reports
+	! Report/output generation settings
+	ReportGenCSV = true          ! Creation CSV files for the generation schedules
+	ReportOutputDir = 'output/'  ! Output directory for the CSV files
+	ReportColWidth = 13          ! Table column width for generated reports
 end-parameters
 
 !
@@ -76,38 +79,39 @@ end-function
 procedure generate_report(title:string)
 	writeln("\n\n\n", title, "\n", "="*getsize(title), "\n")
 	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
-	writeln(strfmt("Optimal generation schedule", rcolwidth*4))
+	writeln(strfmt("Optimal generation schedule", ReportColWidth*4))
 	writeln
-	write(strfmt(" ", rcolwidth))
-	forall(t in Times) write(strfmt(t, rcolwidth))
+	write(strfmt(" ", ReportColWidth))
+	forall(t in Times) write(strfmt(t, ReportColWidth))
 	writeln
-	writeln("-"*rcolwidth*7)
+	writeln("-"*ReportColWidth*7)
 	forall(s in Source) do
-		write(strfmt(s, rcolwidth))
-		forall(t in Times) write(strfmt(getsol(Generate(s,t)), rcolwidth))
+		write(strfmt(s, ReportColWidth))
+		forall(t in Times) write(strfmt(getsol(Generate(s,t)), ReportColWidth))
 		writeln
 	end-do 
 	
 	
-	!writeln("-"*rcolwidth*7)
+	!writeln("-"*ReportColWidth*7)
 	!write(strfmt("TOTAL", colwidth))
 	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
 	
 	writeln
-	write(strfmt("Demand", rcolwidth))
-	forall(t in Times) write(strfmt(getsol(Demand(t)), rcolwidth))
+	write(strfmt("Demand", ReportColWidth))
+	forall(t in Times) write(strfmt(getsol(Demand(t)), ReportColWidth))
 	
 	writeln
 	writeln
-	write(strfmt("Reservoir lvl", rcolwidth))
-	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), rcolwidth))
+	write(strfmt("Reservoir lvl", ReportColWidth))
+	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), ReportColWidth))
 	writeln
 end-procedure
 
 ! Output a standard CSV file for the model
 ! Again saves on code repition.
-procedure create_csv(filename:string)
-	fopen(filename, F_OUTPUT)
+procedure create_csv(FileName:string)
+	makedir(ReportOutputDir)
+	fopen(ReportOutputDir + FileName + '.csv', F_OUTPUT)
 	! Headers
 	write('Time')
 	forall(s in Source) do
@@ -203,7 +207,7 @@ TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
 
 maximize(TotalProfit)
 generate_report("BASE CASE")
-create_csv("output/base.csv")
+create_csv("base")
 
 forall(s in Source, t in Times) do
 	LongTermPlan(s,t) := getsol(Generate(s,t))
@@ -221,7 +225,7 @@ TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 maximize(TotalProfit)
 generate_report("STRICTER CO2 LIMITS")
-create_csv("output/co2.csv")
+create_csv("co2")
 
 
 !
@@ -305,7 +309,7 @@ end-do
 
 maximize(TotalProfit)
 generate_report("CUSTOM MULTIPLIERS")
-create_csv("output/multipliers.csv")
+create_csv("multipliers")
 
 
 !
