@@ -107,7 +107,7 @@ end-procedure
 ! Output a standard CSV file for the model
 ! Again saves on code repition.
 procedure create_csv(filename:string)
-	!fopen(filename, F_OUTPUT)
+	fopen(filename, F_OUTPUT)
 	! Headers
 	write('Time')
 	forall(s in Source) do
