@@ -1,0 +1,190 @@
+% this is reportMathew.tex, I just renamed it and got rid of my original
+
+\documentclass{article}
+
+\input{preamble.tex}
+
+\title{\Huge \EPower\ Case Study}
+\author{Mark Alexander, Abby Li,\\[0.2cm]Szymon Sacher, Matthew Yau}
+
+\newcommand{\EPower}{\texttt{EPower}}
+
+\begin{document}
+
+	\begin{titlepage}
+
+	\maketitle
+    
+    \end{titlepage}
+    
+    % 
+    %  OVERVIEW
+    % 
+    
+    \section{Overview}
+    
+    \EPower\ is a national electricity provider for a small country.  It relies on gas, coal, nuclear, wind, hydro and an external interconnect in order to meet the energy needs of its customers.
+    
+    This study has been commissioned with the aim of assisting \EPower\ in planning for a potential reduction in carbon dioxide emission limits, as well as developing general strategies for coping with variable consumer demand and wind power availability.  The overall objective throughout is that of maximizing \EPower's total profit whilst satisfying power demand.
+    
+    
+    % 
+    %  BASE CASE
+    % 
+    
+    \section{Base Case - Current Operating Practice}
+	
+    In order to investigate the proposed scnearios, we first look at the base case--that is, we build a model which replicates \EPower's current day-to-day operations.
+    
+    The primary modeling considerations for \EPower's operations include: the demand level for electricity from consumers; the generation capacities, costs, and limitations of each electricity source; regulatory limits on emissions that arise from its generation activities; and the price charged for each unit of electricity sold.  Demand for electricity varies throughout the day, which is split into a number of variable-length periods.  As stated, the objective is the maximize profit while meeting the demand and other constraints. Full details can be found in Appendix A and in the attached \texttt{Xpress-Mosel} model file.
+    
+    In accordance with the model, the optimal generation schedule is shown by Table \ref{table:basic-optgensched} and Figure \ref{fig:basic-optgensched}.  By adhering to this scheme, \EPower\ will make a total daily profit of \textsterling 2.034 million.
+    
+    \begin{table}[h!]\label{table:basic-optgensched}
+    	\centering
+        \productiontable{output/base.csv}
+    	\caption{Optimal Generation Schedule for the \texttt{Basic} Scenario}
+    \end{table}
+    
+    \begin{figure}[h!]
+        \centering
+        \chartgenschedstacked{Optimal Generation Schedule for Base Scenario}{output/base.csv}
+        \caption{Optimal Generation Schedule for the \texttt{Basic} Scenario}
+        \label{fig:basic-optgensched}
+    \end{figure}
+    
+    In summary, the max output for most power sources should never be reached. The exceptions are: wind power, which should always operate at its average maximum output; and hydro power, which should operate at its maximum output during the fourth period (4pm-8pm) only. The running and increase costs for wind power are extremely low, so it is always advantageous to maximize electricity generation from this cheap source of power. Demand is highest during the evening, which requires hydro power to be at its capacity during those hours since this power source offers the second-best running and increase costs. In times of low demand, water should be pumped into the reservoir to replenish water levels.
+    
+    It is important that electricity generation using nuclear power is constant. The increase cost of nuclear power is extremely large so any variation in its usage would incur heavy losses. Similarly, electricity generation using gas power should be relatively constant (except for during the first period (12am-6am)). Since the interconnect has the highest running cost of all power sources, \texttt{EPower} should not purchase any power from this source at all.
+    
+    Based on our observations of \texttt{EPower}'s current situation, we would recommend:
+    \begin{itemize}
+    \item Finding ways of expanding maximum output of wind power\textemdash by investing in more wind turbines.
+    \item Reducing nuclear power usage, possibly by increasing the maximum output of wind, gas and coal power.
+    \item Investing in gas and coal power to make them less polluting, thus making it easier to comply with emissions standards and to prepare for further limits in the future.
+    \end{itemize}
+    
+    
+    % 
+    %  REDUCED CO2
+    % 
+    
+    \section{Reducing Limits on CO\textsubscript{2} Emissions}
+    
+    \begin{table}[h!]\label{table:basic-optgensched}
+    	\centering
+        \productiontable{output/co2.csv}
+    	\caption{Optimal Generation Schedule for the \texttt{Reduced CO2} Scenario}
+    \end{table}
+    
+    \begin{figure}[H]
+        \centering
+        \chartgenschedstacked{Optimal Generation Schedule for the Reduced CO2 Scenario}{output/co2.csv}
+    	\caption{Optimal Generation Schedule for the \texttt{Reduced CO2} Scenario}
+    \end{figure}
+    
+    Sketch notes:
+    
+    \begin{itemize}
+    	
+        \item  Coal use is entirely eliminated.  Coal is a very cheap source of energy (best MW per \textsterling?) but naturally has a very high emission level for carbon (worst emissions per MW?).
+        
+        \item We see the interconnect come into play here, whereas it wasn't required in the base model.  The interconnect is an expensive (the most expensive?) source of electricity and is best utilized as an emergency buffer for extraordinary situations (see e.g. the following scenario).  The fact that a reduction in CO2 limits makes the interconnect come up in long-term day-to-day operations is \textbf{bad}, costly and very concerning.  Therefore it's desirable to make an investment in increasing capacity elsewhere.  That is what we address now.
+    
+    \end{itemize}
+    
+    
+    \subsection{Increasing Capacity}
+    
+    We consider a 1000 MW increase in capacity for each source.
+    
+    
+   	\subsection{Further Suggestions}
+    
+    \begin{itemize}
+    
+    	\item Of course invest in the best 1000 MW increase option.  But why stop there?  Does adding more than 1000 MW lead to an overall profit (in NPV or payback period terms, say)?  What about adding capacity to more than one supply type?
+    	
+        \item Offset carbon emissions by engaging in the carbon credit market.  [talk about fair prices, etc]
+        
+        \item Consider investing in scrubbing technology for the coal units.  Coal is *so* cheap that this up front investment may pay off.
+    
+    \end{itemize}
+    
+    
+    % 
+    %  MULTIPLIERS
+    % 
+    
+    \section{Variable Demand and Wind Availability Issues}
+	
+    \begin{table}[H]
+    	\centering
+        \productiontable{output/multipliers.csv}
+    \end{table}
+    
+    \begin{figure}[H]
+        \centering
+        \chartgenschedstacked{Optimal Generation Schedule for Multipliers Scenario}{output/multipliers.csv}
+    \end{figure}
+    
+    
+    Sketch notes:
+    
+    \begin{itemize}
+    	
+        \item  Again the interconnect is used, though this time it is an unusual case so this is more acceptable.  Still expensive though; we'd like to move that capacity somewhere else if we could.  Hydro might be a good idea.  It has the same `emergency buffer' abilities as the interconnect does, but tends to be (considerably? how much exactly?) cheaper.
+    
+    \end{itemize}
+    
+    
+    
+    
+    
+    \newpage
+    
+    \appendix
+    
+    % 
+    %  APPENDIX A - PARAMS
+    % 
+    
+    \section{Model Input Parameters}
+
+	Power output is measured in Megawatts (MW). Electricity (energy) generated is power output over a period of time: it is equal to ``power" $\times$ ``time" and is measured in Megawatt hours (MWh). The selling price of electricity is \textsterling 35/MWh. Table \ref{Table 2} in the Appendix summarizes the output and costs of each of the six power sources. Also shown are the carbon dioxide and sulphur emissions, measured in standardized units per MWh of electricity generated from that power source. \texttt{EPower} must not exceed the daily limits of these two pollutants, which are given in Table \ref{Table 3} in the Appendix.
+
+    \subsection*{Power Sources}
+
+	\begin{table}[h]
+    \centering
+    \begin{tabular}{lllllll}
+    	\hline
+    	~ & Gas & Coal & Nuclear & Wind & Hydro & Interconnect \\ \hline
+        Max Output (MW) & 6000 & 6000 & 5000 & 5500 & 2000 & 20000 \\
+        Run. Cost (\textsterling/MWh) & 40 & 30 & 50 & 2 & 5 & 100 \\
+        Inc. Cost (\textsterling/MWh) & 80 & 60 & 1e+10 & 1 & 5 & 50 \\ \hline
+        Carbon Em. & 0.0 & 0.4 & 0 & 0 & 0 & 0 \\
+        Sulphur Em. & 0.8 & 1.2 & 0 & 0 & 0 & 0 \\ \hline
+    \end{tabular}
+    \caption{Electricity is bought from EPower at a cost of \textsterling 35/MWh. \label{Table 2}}
+    \end{table}
+    
+    \subsection*{Emissions Constraints}
+
+	\begin{table}[h]
+    \centering
+    \begin{tabular}{lll}
+    	\hline
+    	~ & Carbon Dioxide & Sulphur \\ \hline
+    	Daily Limit & 30000 & 200000 \\ \hline
+    \end{tabular}
+    \caption{Total permitted daily emissions, in standardized units\label{Table 3}}
+    \end{table}
+
+
+    
+    % 
+    %  APPENDIX B - FULL OUTPUT
+    % 
+    
+\end{document}
