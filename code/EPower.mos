@@ -132,20 +132,22 @@ procedure generate_report(title:string, tag:string)
 	end-if
 end-procedure
 
+procedure initialize_data
+	initializations from "EPower.dat"
+		Emiss Source Times PeriodLength Demand
+		MaxOutput RunningCost IncreaseCost
+		Emissions EmissionsLimit
+		MaxHydroReserve NaturalHydroInflow HydroPowerEfficiencyFrac ElectricityPrice
+		DemandMu WindMu
+		EmissionsCreditPrice
+	end-initializations
+end-procedure
 
 !
 ! Load data from file
 !
 
-initializations from "EPower.dat"
-	Emiss Source Times PeriodLength Demand
-	MaxOutput RunningCost IncreaseCost
-	Emissions EmissionsLimit
-	MaxHydroReserve NaturalHydroInflow HydroPowerEfficiencyFrac ElectricityPrice
-	DemandMu WindMu
-	EmissionsCreditPrice
-end-initializations
-
+initialize_data
 
 !
 ! Basic model
@@ -210,9 +212,6 @@ forall(s in Source, t in Times) do
 	LongTermPlanReservoire(t) := getsol(HydroReserve(t))
 end-do
 
-
-
-
 !
 ! PRINT 'STRICTER CO2 LIMITS' CASE
 !
@@ -266,9 +265,7 @@ forall(s in Source) do
 	writeln
 	
 	! Reset data for re-use
-	initializations from "EPower.dat"
-		MaxOutput NaturalHydroInflow MaxHydroReserve
-	end-initializations
+	initialize_data
 end-do
 
 EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
@@ -310,20 +307,68 @@ generate_report("CUSTOM MULTIPLIERS", 'multipliers')
 ! EMISSION CREDITS MODEL
 !
 
-! Needs some fixing, e.g. need to reset some stuff from above
-! With base case model, this increases profit considerably.
+! Reset the data
+initialize_data
 
 ! Remove hard emissions constraints
 forall(e in Emiss) do
 	EmmissionCS(e) := 0
 end-do
 
+!Remove constraints from above
+forall(s in Source, t in Times) do
+	LongTermCS(s) := 0
+	OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
+	DemandCS(t) := EnergySold(t) = Demand(t)
+end-do 
+
+LongTermReservoireCS := 0
+
 ! Add emissions credit cost to objective
 TotalEmissionCreditCost :=
 	sum(e in Emiss) (EmissionsGenerated(e) - EmissionsLimit(e)) * EmissionsCreditPrice(e)
+
 TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
 
 maximize(TotalProfit)
 generate_report("EMISSIONS MARKET", 'emarket')
+
+!
+! Loop over various carbon prices to check the composition of energy generation and profits
+!
+
+! Reinstate sulphur limit
+EmmissionCS('Sulphur') := EmissionsGenerated('Sulphur') <= EmissionsLimit('Sulphur')
+
+! Reset emission prices to 0
+forall(e in Emiss) EmissionsCreditPrice(e) := 0
+
+! Open reporting file
+fopen(ReportOutputDir + 'carbon_price_analysis' + '.csv', F_OUTPUT)
+
+write("Profit,TotalRunningCost,TotalIncreaseCost,TotalEmissionCreditCost, Co2Price,")
+forall(s in Source) write(s,',')
+writeln
+
+repeat
+	
+	TotalEmissionCreditCost :=	sum(e in Emiss) (EmissionsGenerated(e) - EmissionsLimit(e)) * EmissionsCreditPrice(e)
+	TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
+	
+	maximize(TotalProfit)
+	
+	write(getsol(TotalProfit),',',
+		  getsol(TotalRunningCost),',',
+		  getsol(TotalIncreaseCost),',',
+		  getsol(TotalEmissionCreditCost),',',
+		  EmissionsCreditPrice("CO2"))
+	
+	forall(s in Source) write(',',getsol(TotalEnergyGenerated(s)))
+	writeln
+	
+	EmissionsCreditPrice("CO2") += 1
+until EmissionsCreditPrice("CO2") > 100
+
+fclose(F_OUTPUT)
 
 end-model
