@@ -1,0 +1,71 @@
+
+% Color theme 1
+% \definecolor{cGas}{RGB}{253,180,98}
+% \definecolor{cCoal}{RGB}{190,186,218}
+% \definecolor{cNuclear}{RGB}{255,255,179}
+% \definecolor{cWind}{RGB}{141,211,199}
+% \definecolor{cHydro}{RGB}{128,177,211}
+% \definecolor{cInterconnect}{RGB}{251,128,114}
+
+% Color theme 2
+\definecolor{cGas}{RGB}{202,178,214}
+\definecolor{cCoal}{RGB}{180,180,180}
+\definecolor{cNuclear}{RGB}{253,191,111}
+\definecolor{cWind}{RGB}{178,223,138}
+\definecolor{cHydro}{RGB}{166,206,227}
+\definecolor{cInterconnect}{RGB}{251,154,153}
+
+\newcommand{\chartgenschedstacked}[2]{%
+    \pgfplotstableread[col sep=comma]{#2}\loadedtable
+    \begin{tikzpicture}
+        \begin{axis}[
+        	title={#1},
+            ymin=0,
+            minor tick num=4,
+            enlarge x limits=false,
+            const plot,
+            axis on top,
+            stack plots=y,
+            cycle multi list={%
+                {cGas!60!black,fill=cGas},%
+                {cCoal!60!black,fill=cCoal},%
+                {cNuclear!60!black,fill=cNuclear},%
+                {cWind!60!black,fill=cWind},%
+                {cHydro!60!black,fill=cHydro},%
+                {cInterconnect!60!black,fill=cInterconnect},%
+             },
+            xlabel={Time (h)},
+            ylabel={Generation (MW)},
+            width=\textwidth,
+            height=7cm,
+            legend style={
+                area legend,
+                at={(0.5,-0.2)},
+                anchor=north,
+                legend columns=2}
+            ]
+
+        \addplot table[x=StartTime,y=Gas] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y=Coal] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y=Nuclear] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y=Wind] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y=Hydro] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y=Interconnect] from \loadedtable \closedcycle;
+        %\addplot+[stack plots=false] table[x=time,y=memtotal]     from \loadedtable;
+        \legend{Gas, Coal, Nuclear, Wind, Hydro, Interconnect}
+        \end{axis}
+    \end{tikzpicture}%
+}
+
+
+
+\newcommand{\productiontable}[1]{%
+    \begin{tabular}{lcccccc}
+		\hline
+		\textbf{Period} & \textbf{Gas} & \textbf{Coal} & \textbf{Nuclear} & \textbf{Wind} & \textbf{Hydro} & \textbf{Interconnect} \\ \hline
+		\csvreader[head to column names]{#1}{}
+		{\Period & \Gas & \Coal & \Nuclear & \Wind & \Hydro & \Interconnect \\} \\ \hline
+    \end{tabular}
+}
+
+	
