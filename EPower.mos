@@ -111,7 +111,7 @@ procedure generate_report(title:string, tag:string)
 		makedir(ReportOutputDir)
 		fopen(ReportOutputDir + tag + '.csv', F_OUTPUT)
 		! Headers
-		write('Time')
+		write('Period,StartTime,EndTime')
 		forall(s in Source) do
 			write(',', s)
 		end-do
@@ -122,13 +122,11 @@ procedure generate_report(title:string, tag:string)
 			starttime := currtime
 			currtime += PeriodLength(t)
 			endtime := currtime
-			forall(h in [starttime, endtime]) do
-				write(h)
-				forall(s in Source) do
-					write(',', getsol(Generate(s,t)))
-				end-do
-				writeln
+			write(t, ',', starttime, ',', endtime)
+			forall(s in Source) do
+				write(',', getsol(Generate(s,t)))
 			end-do
+			writeln
 		end-do
 		fclose(F_OUTPUT)
 	end-if
