@@ -150,11 +150,6 @@ EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2"
 maximize(TotalProfit)
 generate_report("STRICTER CO2 LIMITS", 'co2')
 
-writeln
-writeln("Fair price of CO2 is: ", getdual(EmmissionCS('CO2')),
-		", valid for (", getsensrng(XPRS_DN, EmmissionCS('CO2')),
-		" ,", getsensrng(XPRS_UP, EmmissionCS('CO2')),')')
-
 
 ! Source expansion
 print_heading("SOURCE EXPANSION DECISION", "=")
@@ -325,7 +320,7 @@ procedure generate_report(title:string, tag:string)
 	!
 	
 	if ReportOptGenSched then
-		print_heading("OPTIMAL GENERATION SCHEDULE", "=")
+		print_heading("GENERATION SCHEDULE", "=")
 		
 		ColWidth := round(ReportMaxWidth/7)
 		writeln("-"*ReportMaxWidth)
@@ -337,12 +332,7 @@ procedure generate_report(title:string, tag:string)
 			write(strfmt(s, ColWidth))
 			forall(t in Times) write(strfmt(getsol(Generate(s,t)), ColWidth))
 			writeln
-		end-do 
-		
-		!writeln("-"*ReportMaxWidth)
-		!write(strfmt("TOTAL", ColWidth))
-		!forall(t in Times) write(strfmt(getsol(EnergySold(t)), ColWidth))
-		!writeln
+		end-do
 		
 		writeln("."*ReportMaxWidth)
 		write(strfmt("Reservoir lvl", ColWidth))
@@ -380,26 +370,17 @@ procedure generate_report(title:string, tag:string)
 	! Emissions reporting
 	!
 	
-	!if ReportEmissions then
-		!writeln
-		!print_heading("EMISSIONS LIMITS", "=")
-		!ColWidth := round(ReportMaxWidth/4)
-		!writeln("-"*ReportMaxWidth)
-		!write(strfmt("Emittant", ColWidth))
-		!write(strfmt("Limit", ColWidth))
-		!write(strfmt("Current", ColWidth))
-		!write(strfmt("Fair Price", ColWidth))
-		!writeln
-		!writeln("-"*ReportMaxWidth)
-		!forall(e in Emiss) do
-		!	write(strfmt(e, ColWidth))
-		!	write(strfmt(EmissionsLimit(e), ColWidth))
-		!	write(strfmt(getsol(EmissionsGenerated(e)), ColWidth))
-		!	write(strfmt(getdual(EmmissionCS(e)), ColWidth))
-		!	writeln
-		!end-do
-		!writeln("-"*ReportMaxWidth)
-	!end-if
+	if ReportEmissions then
+		print_heading("EMISSIONS LIMITS", "=")
+		forall(e in Emiss) do
+			if getslack(EmmissionCS(e)) = 0 then
+				writeln("Fair price of " + e + " is: £", getdual(EmmissionCS(e)),
+						", valid for (", getsensrng(XPRS_DN, EmmissionCS(e)),
+						" ,", getsensrng(XPRS_UP, EmmissionCS(e)),')')
+				writeln
+			end-if
+		end-do
+	end-if
 	
 end-procedure
 
