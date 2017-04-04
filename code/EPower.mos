@@ -16,6 +16,7 @@ parameters
 	ReportMaxWidth = 100         ! Maximum width for console output
 end-parameters
 
+
 !
 ! DECLARE MODEL IDENTIFIERS
 !
@@ -65,23 +66,13 @@ end-declarations
 ! DECLARE FUNCTIONS AND PROCEDURES
 !
 
-! Get the index of the 'previous' time period for given current time period t.
-! Uses modular arithmetic to find the previous time period, looping around to the start
-! when given the end period.  This way we can freely extend the number of time periods
-! in the .dat file without changing the main model code. I.e. this is better style.
-! N.B. the in-built 'mod' operator is actually a 'remainder' operator and doesn't work
-! correctly with negative numbers.  Hence the explicit definition.
-function getprevperiod(t:integer):integer
-	n := getsize(Times)
-	returned := ((((t-2) mod n) + n) mod n) + 1
-end-function
-
-
-! Procedures are relegated to the bottom of the file. 
+! N.B. actual definitions are relegated to the bottom of the file. 
+forward function getprevperiod(t:integer):integer
 forward procedure initialize_data
 forward procedure print_heading(title:string, uchar:string)
 forward	procedure generate_report(title:string, tag:string)
 forward procedure carbon_loop(carbon_allocation:real, tag:string)
+
 
 !
 ! LOAD DATA FROM FILE
@@ -279,8 +270,23 @@ carbon_loop(EmissionsLimit("CO2") * 0.5, 'carbon_credit')
 
 
 !
-! Procedures
+! PROCEDURE AND FUNCTION DEFINITIONS
 !
+
+! The following are used mostly for convenience and to avoid code repition, e.g.
+! when printing out standard reporting or creating CSV files.
+! They are not necessary for understanding the model in general.
+
+! Get the index of the 'previous' time period for given current time period t.
+! Uses modular arithmetic to find the previous time period, looping around to the start
+! when given the end period.  This way we can freely extend the number of time periods
+! in the .dat file without changing the main model code. I.e. this is better style.
+! N.B. the in-built 'mod' operator is actually a 'remainder' operator and doesn't work
+! correctly with negative numbers.  Hence the explicit definition.
+function getprevperiod(t:integer):integer
+	n := getsize(Times)
+	returned := ((((t-2) mod n) + n) mod n) + 1
+end-function
 
 ! Print a simple heading
 procedure print_heading(title:string, uchar:string)
