@@ -304,8 +304,21 @@ procedure generate_report(title:string, tag:string)
 	! Basic information
 	!
 	
-	print_heading("BASIC INFORMATION", "=")
-	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
+	print_heading("REVENUE BREAKDOWN", "=")
+	
+	ColWidth := 20
+	writeln(" "*ColWidth, strfmt("(£m)", ColWidth))
+	write(strfmt("Total revenue: ", ColWidth))
+	writeln(strfmt(getsol(TotalRevenue)/1e6, 0, 3))
+	write(strfmt("Running costs: ", ColWidth))
+	writeln("(", strfmt(getsol(TotalRunningCost)/1e6, 0, 3), ")")
+	write(strfmt("Increase costs: ", ColWidth))
+	writeln("(", strfmt(getsol(TotalIncreaseCost)/1e6, 0, 3), ")")
+	writeln(" "*ColWidth, "-"*ColWidth)
+	write(strfmt("Total profit: ", ColWidth))
+	writeln(strfmt(getsol(TotalProfit)/1e6, 0, 3))
+	writeln(" "*ColWidth, "-"*ColWidth)
+	writeln
 	
 	!
 	! Optimal generation schedule
