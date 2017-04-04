@@ -4,18 +4,20 @@ uses "mmxprs";
 uses "mmsystem";
 
 !
-! Declare parameters
+! DECLARE PARAMETERS
 !
 
 parameters
 	! Report/output generation settings
-	ReportGenCSV = true          ! Creation CSV files for the generation schedules
+	ReportOptGenSched = true     ! Report optimal generation schedules?
+	ReportEmissions = true       ! Report emissions information?
+	ReportOutputCSV = true       ! Create CSV files for reports?
 	ReportOutputDir = 'output/'  ! Output directory for the CSV files
-	ReportColWidth = 13          ! Table column width for generated reports
+	ReportMaxWidth = 100         ! Maximum width for console output
 end-parameters
 
 !
-! Declare model identifiers
+! DECLARE MODEL IDENTIFIERS
 !
 
 declarations
@@ -60,7 +62,7 @@ end-declarations
 
 
 !
-! Declare procedures and functions
+! DECLARE FUNCTIONS AND PROCEDURES
 !
 
 ! Get the index of the 'previous' time period for given current time period t.
@@ -74,62 +76,106 @@ function getprevperiod(t:integer):integer
 	returned := ((((t-2) mod n) + n) mod n) + 1
 end-function
 
+! Print a simple heading
+procedure print_heading(title:string, uchar:string)
+	writeln("\n", title, "\n", uchar*getsize(title), "\n")
+end-procedure
+
 ! Print a standard table output for the main model.
 ! Saves us repeating this code for every variation of the model.
 procedure generate_report(title:string, tag:string)
-	writeln("\n\n\n", title, "\n", "="*getsize(title), "\n")
+
+	writeln("\n\n")
+	print_heading("SCENARIO: " + title, "#")
+
+	!
+	! Basic information
+	!
+	
+	print_heading("BASIC INFORMATION", "=")
 	writeln("Total profit: £", strfmt(getobjval/1e6, 0, 3), " million.\n")
-	writeln(strfmt("Optimal generation schedule", ReportColWidth*4))
-	writeln
-	write(strfmt(" ", ReportColWidth))
-	forall(t in Times) write(strfmt(t, ReportColWidth))
-	writeln
-	writeln("-"*ReportColWidth*7)
-	forall(s in Source) do
-		write(strfmt(s, ReportColWidth))
-		forall(t in Times) write(strfmt(getsol(Generate(s,t)), ReportColWidth))
+	
+	!
+	! Optimal generation schedule
+	!
+	
+	if ReportOptGenSched then
+		print_heading("OPTIMAL GENERATION SCHEDULE", "=")
+		
+		ColWidth := round(ReportMaxWidth/7)
+		writeln("-"*ReportMaxWidth)
+		write(strfmt(" ", ColWidth))
+		forall(t in Times) write(strfmt(t, ColWidth))
 		writeln
-	end-do 
-	
-	
-	!writeln("-"*ReportColWidth*7)
-	!write(strfmt("TOTAL", colwidth))
-	!forall(t in Times) write(strfmt(getsol(EnergySold(t)), colwidth))
-	
-	writeln
-	write(strfmt("Demand", ReportColWidth))
-	forall(t in Times) write(strfmt(getsol(Demand(t)), ReportColWidth))
-	
-	writeln
-	writeln
-	write(strfmt("Reservoir lvl", ReportColWidth))
-	forall(t in Times) write(strfmt(getsol(HydroReserve(t)), ReportColWidth))
-	writeln
-	
-	! Output a standard CSV file for the model
-	if ReportGenCSV then
-		makedir(ReportOutputDir)
-		fopen(ReportOutputDir + tag + '.csv', F_OUTPUT)
-		! Headers
-		write('Period,StartTime,EndTime')
+		writeln("-"*ReportMaxWidth)
 		forall(s in Source) do
-			write(',', s)
-		end-do
+			write(strfmt(s, ColWidth))
+			forall(t in Times) write(strfmt(getsol(Generate(s,t)), ColWidth))
+			writeln
+		end-do 
+		
+		!writeln("-"*ReportMaxWidth)
+		!write(strfmt("TOTAL", ColWidth))
+		!forall(t in Times) write(strfmt(getsol(EnergySold(t)), ColWidth))
+		!writeln
+		
+		writeln("."*ReportMaxWidth)
+		write(strfmt("Reservoir lvl", ColWidth))
+		forall(t in Times) write(strfmt(getsol(HydroReserve(t)), ColWidth))
 		writeln
-		! Data
-		currtime := 0.0
-		forall(t in Times) do
-			starttime := currtime
-			currtime += PeriodLength(t)
-			endtime := currtime
-			write(t, ',', starttime, ',', endtime)
+		writeln("-"*ReportMaxWidth)
+		
+		! Output a standard CSV file for the model
+		if ReportOutputCSV then
+			makedir(ReportOutputDir)
+			fopen(ReportOutputDir + tag + '.csv', F_OUTPUT)
+			! Headers
+			write('Period,StartTime,EndTime')
 			forall(s in Source) do
-				write(',', getsol(Generate(s,t)))
+				write(',', s)
 			end-do
 			writeln
-		end-do
-		fclose(F_OUTPUT)
+			! Data
+			currtime := 0.0
+			forall(t in Times) do
+				starttime := currtime
+				currtime += PeriodLength(t)
+				endtime := currtime
+				write(t, ',', starttime, ',', endtime)
+				forall(s in Source) do
+					write(',', getsol(Generate(s,t)))
+				end-do
+				writeln
+			end-do
+			fclose(F_OUTPUT)
+		end-if
 	end-if
+	
+	!
+	! Emissions reporting
+	!
+	
+	!if ReportEmissions then
+		!writeln
+		!print_heading("EMISSIONS LIMITS", "=")
+		!ColWidth := round(ReportMaxWidth/4)
+		!writeln("-"*ReportMaxWidth)
+		!write(strfmt("Emittant", ColWidth))
+		!write(strfmt("Limit", ColWidth))
+		!write(strfmt("Current", ColWidth))
+		!write(strfmt("Fair Price", ColWidth))
+		!writeln
+		!writeln("-"*ReportMaxWidth)
+		!forall(e in Emiss) do
+		!	write(strfmt(e, ColWidth))
+		!	write(strfmt(EmissionsLimit(e), ColWidth))
+		!	write(strfmt(getsol(EmissionsGenerated(e)), ColWidth))
+		!	write(strfmt(getdual(EmmissionCS(e)), ColWidth))
+		!	writeln
+		!end-do
+		!writeln("-"*ReportMaxWidth)
+	!end-if
+	
 end-procedure
 
 procedure initialize_data
@@ -143,77 +189,76 @@ procedure initialize_data
 	end-initializations
 end-procedure
 
+
 !
-! Load data from file
+! LOAD DATA FROM FILE
 !
 
 initialize_data
 
+
 !
-! Basic model
+! BUILD BASIC MODEL
 !
 
-! Hydro reserves and demand
 forall(t in Times) do
-	! Hydro reserve must be consistent across time periods
-	NetHydroFlow(t) := (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
-	HydroReserve(t) = HydroReserve(getprevperiod(t)) + NetHydroFlow(t)
-	
-	! Hydro reserve must not exceed maximum
-	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
-	
 	! Energy sold must meet the demand exactly
 	EnergySold(t) := sum(s in Source) Generate(s,t) - Pump(t)
 	DemandCS(t) := EnergySold(t) = Demand(t)
 	
+	! Hydro reserve must not exceed maximum
+	HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
+	
 	! Pumping capacity must not exceed maximum (see FAQ)
 	PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
 	
+	! Hydro reserve must be consistent across time periods
+	NetHydroFlow(t) := (HydroPowerEfficiencyFrac * Pump(t) + NaturalHydroInflow - Generate("Hydro",t)) * PeriodLength(t)
+	HydroReserve(t) = HydroReserve(getprevperiod(t)) + NetHydroFlow(t)
 end-do
 
-! Output generated
 forall(s in Source) do
-	! Output generation level at t must not exceed max output
+	! Output generation level of source at t must not exceed max output
 	forall(t in Times) OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
 	
 	! Total energy generated from each source in MWh
-	TotalEnergyGenerated(s) := sum(t in Times) Generate(s,t)*PeriodLength(t)
+	TotalEnergyGenerated(s) := sum(t in Times) Generate(s,t) * PeriodLength(t)
 end-do
 
-! Emissions
+! Emissions must not exceed limit
 forall(e in Emiss) do
-	! Emissions of each emittant must not exceed limit
 	EmissionsGenerated(e) := sum(s in Source) TotalEnergyGenerated(s) * Emissions(e,s)
 	EmmissionCS(e) := EmissionsGenerated(e) <= EmissionsLimit(e)
 end-do
 
-! Increases
+! Generation must be consistent with previous increase
 forall(s in Source, t in Times) do
-	! Generation must be consistent with previous increase
 	IncreaseCS(s,t) := Generate(s,t) <= Generate(s,getprevperiod(t)) + Increase(s,t)
 end-do	
 
 ! Objective
 TotalIncreaseCost := sum(s in Source, t in Times) Increase(s,t) * IncreaseCost(s)
 TotalRunningCost := sum(s in Source) TotalEnergyGenerated(s) * RunningCost(s)
-TotalIncome := sum(t in Times) EnergySold(t) * PeriodLength(t) * ElectricityPrice
-TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost
+TotalRevenue := sum(t in Times) EnergySold(t) * PeriodLength(t) * ElectricityPrice
+TotalProfit := TotalRevenue - TotalRunningCost - TotalIncreaseCost
 
 
 !
-! PRINT 'BASE' CASE
+! SCENARIO: BASE CASE
 !
 
 maximize(TotalProfit)
 generate_report("BASE CASE", 'base')
 
+! Store generation schedule as long term plan
 forall(s in Source, t in Times) do
 	LongTermPlan(s,t) := getsol(Generate(s,t))
 	LongTermPlanReservoire(t) := getsol(HydroReserve(t))
 end-do
 
+
 !
-! PRINT 'STRICTER CO2 LIMITS' CASE
+! SCENARIO: REDUCED CO2 EMISSION LIMIT
 !
 
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
@@ -222,15 +267,15 @@ maximize(TotalProfit)
 generate_report("STRICTER CO2 LIMITS", 'co2')
 
 
-!
-! PRINT 'SOURCE EXPANSION DECISION' TABLE
-!
+! Source expansion
+print_heading("SOURCE EXPANSION DECISION", "=")
 
-writeln("\n\n\nSOURCE EXPANSION DECISION\n", "=========================\n")
+writeln("-"*ReportMaxWidth)
 write(strfmt("Expand:", 13), strfmt("Profit (£m)", 13))
 forall(s in Source) write(strfmt(s, 10))
 write(strfmt("CO2", 10))
 writeln
+writeln("-"*ReportMaxWidth)
 
 forall(s in Source) do
 	
@@ -277,7 +322,7 @@ end-do
 
 
 !
-! PRINT 'CUSTOM MULTIPLIERS' CASE
+! SCENARIO: VARIABLE DEMAND/WIND AVAIL.
 !
 
 ! The values for nuclear, coal and gas in last period need to be consistent with
@@ -328,7 +373,7 @@ LongTermReservoireCS := 0
 TotalEmissionCreditCost :=
 	sum(e in Emiss) (EmissionsGenerated(e) - EmissionsLimit(e)) * EmissionsCreditPrice(e)
 
-TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
+TotalProfit := TotalRevenue - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
 
 maximize(TotalProfit)
 generate_report("EMISSIONS MARKET", 'emarket')
@@ -353,7 +398,7 @@ writeln
 repeat
 	
 	TotalEmissionCreditCost :=	sum(e in Emiss) (EmissionsGenerated(e) - EmissionsLimit(e)) * EmissionsCreditPrice(e)
-	TotalProfit := TotalIncome - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
+	TotalProfit := TotalRevenue - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
 	
 	maximize(TotalProfit)
 	
