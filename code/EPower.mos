@@ -372,11 +372,8 @@ LongTermReservoireCS := 0
 ! Add emissions credit cost to objective
 TotalEmissionCreditCost :=
 	sum(e in Emiss) (EmissionsGenerated(e) - EmissionsLimit(e)) * EmissionsCreditPrice(e)
-
 TotalProfit := TotalRevenue - TotalRunningCost - TotalIncreaseCost - TotalEmissionCreditCost
 
-maximize(TotalProfit)
-generate_report("EMISSIONS MARKET", 'emarket')
 
 !
 ! Loop over various carbon prices to check the composition of energy generation and profits
