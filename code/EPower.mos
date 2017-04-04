@@ -184,7 +184,7 @@ if SourceExpansionRun then
 	writeln
 	writeln("-"*ReportMaxWidth)
 	
-	forall(OutputIncrease in [1000, 2000, 3000, 4000, 5000]) do
+	forall(OutputIncrease in [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) do
 		
 		forall(s in Source) do
 			
