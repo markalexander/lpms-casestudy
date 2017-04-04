@@ -10,6 +10,7 @@ uses "mmsystem";
 parameters
 	! Report/output generation settings
 	ReportOptGenSched = true     ! Report optimal generation schedules?
+	ReportOutputCTInfo = true
 	ReportDemandCTInfo = true
 	ReportEmissionsCTInfo = true       ! Report emissions constraint information?
 	ReportHydroResCTInfo = true
@@ -372,6 +373,27 @@ procedure generate_report(title:string, tag:string)
 	!
 	! Constraint reporting/fair prices
 	!
+	
+	! Output
+	if ReportOutputCTInfo then
+		print_heading("SOURCE OUTPUT CONSTRAINTS", "=")
+		forall(s in Source) do
+			writeln(s)
+			HasHitCT := false
+			forall(t in Times) do
+				if getslack(OutputCS(s,t)) = 0 then
+					HasHitCT := true
+					writeln("\tFair price of more output from " + s + " in period t=" + t + " is: £", getdual(OutputCS(s,t)),
+							", valid for (", getsensrng(XPRS_DN, OutputCS(s,t)),
+							" ,", getsensrng(XPRS_UP, OutputCS(s,t)),')')
+				end-if
+			end-do
+			if HasHitCT <> true then
+				writeln("\tOutput of " + s + " never reaches capacity")
+			end-if
+			writeln
+		end-do
+	end-if
 	
 	! Demand
 	if ReportDemandCTInfo then
