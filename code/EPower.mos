@@ -10,7 +10,10 @@ uses "mmsystem";
 parameters
 	! Report/output generation settings
 	ReportOptGenSched = true     ! Report optimal generation schedules?
-	ReportEmissions = true       ! Report emissions information?
+	ReportDemandCTInfo = true
+	ReportEmissionsCTInfo = true       ! Report emissions constraint information?
+	ReportHydroResCTInfo = true
+	ReportPumpCTInfo = true
 	ReportOutputCSV = true       ! Create CSV files for reports?
 	ReportOutputDir = 'output/'  ! Output directory for the CSV files
 	ReportMaxWidth = 100         ! Maximum width for console output
@@ -367,19 +370,74 @@ procedure generate_report(title:string, tag:string)
 	end-if
 	
 	!
-	! Emissions reporting
+	! Constraint reporting/fair prices
 	!
 	
-	if ReportEmissions then
-		print_heading("EMISSIONS LIMITS", "=")
+	! Demand
+	if ReportDemandCTInfo then
+		print_heading("DEMAND CONSTRAINTS", "=")
+		forall(t in Times) do
+			if getslack(DemandCS(t)) = 0 then
+				writeln("Fair price of demand in period t=" + t + " is: £", getdual(DemandCS(t)),
+						", valid for (", getsensrng(XPRS_DN, DemandCS(t)),
+						" ,", getsensrng(XPRS_UP, DemandCS(t)),')')
+				writeln
+			end-if
+		end-do
+	end-if
+	
+	! Emissions
+	if ReportEmissionsCTInfo then
+		print_heading("EMISSIONS CONSTRAINTS", "=")
+		HasHitCT := false
 		forall(e in Emiss) do
 			if getslack(EmmissionCS(e)) = 0 then
+				HasHitCT := true
 				writeln("Fair price of " + e + " is: £", getdual(EmmissionCS(e)),
 						", valid for (", getsensrng(XPRS_DN, EmmissionCS(e)),
 						" ,", getsensrng(XPRS_UP, EmmissionCS(e)),')')
 				writeln
 			end-if
 		end-do
+		if HasHitCT <> true then
+			writeln("Emissions utilization never reaches capacity")
+		end-if
+	end-if
+	
+	! Hydro reservoir
+	if ReportHydroResCTInfo then
+		print_heading("HYDRO CAPACITY CONSTRAINTS", "=")
+		HasHitCT := false
+		forall(t in Times) do
+			if getslack(HydroReserveCS(t)) = 0 then
+				HasHitCT := true
+				writeln("Fair price of extra hydro capacity at t=" + t + " is: £", getdual(HydroReserveCS(t)),
+						", valid for (", getsensrng(XPRS_DN, HydroReserveCS(t)),
+						" ,", getsensrng(XPRS_UP, HydroReserveCS(t)),')')
+				writeln
+			end-if
+		end-do
+		if HasHitCT <> true then
+			writeln("Hydro utilization never reaches capacity")
+		end-if
+	end-if
+	
+	! Pump
+	if ReportPumpCTInfo then
+		print_heading("PUMP CONSTRAINTS", "=")
+		HasHitCT := false
+		forall(t in Times) do
+			if getslack(PumpCS(t)) = 0 then
+				HasHitCT := true
+				writeln("Fair price of extra pump capacity at t=" + t + " is: £", getdual(PumpCS(t)),
+						", valid for (", getsensrng(XPRS_DN, PumpCS(t)),
+						" ,", getsensrng(XPRS_UP, PumpCS(t)),')')
+				writeln
+			end-if
+		end-do
+		if HasHitCT <> true then
+			writeln("Pump utilization never reaches capacity")
+		end-if
 	end-if
 	
 end-procedure
