@@ -418,7 +418,7 @@ procedure generate_report(title:string, tag:string)
 			end-if
 		end-do
 		if HasHitCT <> true then
-			writeln("Hydro utilization never reaches capacity")
+			writeln("Hydro storage never reaches capacity")
 		end-if
 	end-if
 	
