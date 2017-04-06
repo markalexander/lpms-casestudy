@@ -20,11 +20,11 @@ parameters
 	ReportMaxWidth = 120         ! Maximum width for console output
 	
 	! Which model do you want to run?
-	BaseCaseRun = false
-	VariableDemandRun = false
+	BaseCaseRun = true
+	VariableDemandRun = true
 	ReducedCO2Run = true
-	SourceExpansionRun = false
-	EmissionMarketRun = false
+	SourceExpansionRun = true
+	EmissionMarketRun = true
 	
 end-parameters
 
@@ -185,8 +185,7 @@ if ReducedCO2Run then
 		
 		write(strfmt((1-Factor)*100, cw))
 		forall(s in Source) do
-			totalgen := sum(t in Times) getsol(Generate(s,t))
-			write(strfmt(totalgen, cw))
+			write(strfmt(getsol(TotalEnergyGenerated(s)), cw))
 		end-do
 		writeln
 	
@@ -208,8 +207,7 @@ if ReducedCO2Run then
 		
 		write((1-Factor)*100)
 		forall(s in Source) do
-			totalgen := sum(t in Times) getsol(Generate(s,t))
-			write(",", totalgen)
+			write(',',getsol(TotalEnergyGenerated(s)))
 		end-do
 		write(",", strfmt(getobjval/1e6, 0, 3))
 		writeln
