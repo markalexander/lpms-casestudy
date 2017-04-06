@@ -435,23 +435,24 @@ procedure generate_report(title:string, tag:string)
 	! Output
 	if ReportOutputCTInfo then
 		print_heading("SOURCE OUTPUT CONSTRAINTS", "=")
+		t_rule
+		t_row(["Source", "Period", "Slack", "Fair Price (£)", "Valid from", "Valid to"])
+		t_rule
 		forall(s in Source) do
-			writeln(s)
-			HasHitCT := false
 			forall(t in Times) do
 				if getslack(OutputCS(s,t)) = 0 then
-					HasHitCT := true
-					writeln("\tFair price of more output from " + s + " in period t=" + t + " is: £", getdual(OutputCS(s,t)),
-							", valid for (", getsensrng(XPRS_DN, OutputCS(s,t)),
-							" ,", getsensrng(XPRS_UP, OutputCS(s,t)),')')
+					t_row([s, strfmt(t, 1), "0",
+						strfmt(getdual(OutputCS(s,t)), 1),
+						strfmt(getsensrng(XPRS_DN, OutputCS(s,t)), 1),
+						strfmt(getsensrng(XPRS_UP, OutputCS(s,t)), 1)])
+				else
+					t_row([s, strfmt(t, 1), strfmt(getslack(OutputCS(s,t)), 1), "--", "--", "--"])
 				end-if
 			end-do
-			if HasHitCT <> true then
-				writeln("\tOutput of " + s + " never reaches capacity")
-			end-if
-			writeln
+			t_rule(".")
 		end-do
 	end-if
+	writeln
 	
 	! Demand
 	if ReportDemandCTInfo then
