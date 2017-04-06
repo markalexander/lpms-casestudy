@@ -70,7 +70,7 @@ declarations
 	Pump:                     array(Times) of mpvar  ! Energy pumped to reservoir at time t (MW)
 	HydroReserve:             array(Times) of mpvar  ! Water remaining in reservoir at end of time t (MWh)
 	Increase:                 array(Source,Times) of mpvar  ! Increase from source s at time t
-	
+
 end-declarations
 
 
@@ -177,10 +177,10 @@ if SourceExpansionRun then
 	EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 	
 	print_heading("SOURCE EXPANSION DECISION", "=")
-	ColWidth := round(ReportMaxWidth/9)
+	cw := round(ReportMaxWidth/9)
 	writeln("-"*ReportMaxWidth)
-	write(strfmt("Inrement:", ColWidth), strfmt("Source:", ColWidth), strfmt("Profit (£m)", ColWidth))
-	forall(s in Source) write(strfmt(s, ColWidth))
+	write(strfmt("Inrement:", cw), strfmt("Source:", cw), strfmt("Profit (£m)", cw))
+	forall(s in Source) write(strfmt(s, cw))
 	writeln
 	writeln("-"*ReportMaxWidth)
 	
@@ -214,9 +214,9 @@ if SourceExpansionRun then
 			maximize(TotalProfit)
 			
 			! Output
-			write(strfmt(OutputIncrease, ColWidth))
-			write(strfmt(s, ColWidth), "      ", strfmt(getobjval/1e6, 0, 3))
-			forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)), ColWidth))
+			write(strfmt(OutputIncrease, cw))
+			write(strfmt(s, cw), "      ", strfmt(getobjval/1e6, 0, 3))
+			forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)), cw))
 			writeln
 			
 			! Reset data for re-use
@@ -317,6 +317,25 @@ function getprevperiod(t:integer):integer
 	returned := ((((t-2) mod n) + n) mod n) + 1
 end-function
 
+! Print a table row
+procedure print_table_row(cells:list of string, cw:integer)
+	forall(c in cells) do
+		write(strfmt(c, cw))
+	end-do
+	writeln
+end-procedure
+
+! Overloaded version for default cw
+procedure print_table_row(cells:list of string)
+	n := getsize(cells)
+	if n < 4 then 
+		cw := 20
+	else
+		cw := round(ReportMaxWidth / getsize(cells))
+	end-if
+	print_table_row(cells, cw)
+end-procedure
+
 ! Print a simple heading
 procedure print_heading(title:string, uchar:string)
 	writeln("\n", title, "\n", uchar*getsize(title), "\n")
@@ -335,18 +354,21 @@ procedure generate_report(title:string, tag:string)
 	
 	print_heading("REVENUE BREAKDOWN", "=")
 	
-	ColWidth := 20
-	writeln(" "*ColWidth, strfmt("(£m)", ColWidth))
-	write(strfmt("Total revenue: ", ColWidth))
-	writeln(strfmt(getsol(TotalRevenue)/1e6, 0, 3))
-	write(strfmt("Running costs: ", ColWidth))
-	writeln("(", strfmt(getsol(TotalRunningCost)/1e6, 0, 3), ")")
-	write(strfmt("Increase costs: ", ColWidth))
-	writeln("(", strfmt(getsol(TotalIncreaseCost)/1e6, 0, 3), ")")
-	writeln(" "*ColWidth, "-"*ColWidth)
-	write(strfmt("Total profit: ", ColWidth))
-	writeln(strfmt(getsol(TotalProfit)/1e6, 0, 3))
-	writeln(" "*ColWidth, "-"*ColWidth)
+	print_table_row([" ", "(£m)"])
+	print_table_row([
+			"Total revenue: ",
+			strfmt(getsol(TotalRevenue)/1e6, 0, 3)])
+	print_table_row([
+			"Running costs: ",
+			"(" + strfmt(getsol(TotalRunningCost)/1e6, 0, 3) + ")"])
+	print_table_row([
+			"Increase costs: ",
+			"(" + strfmt(getsol(TotalIncreaseCost)/1e6, 0, 3) + ")"])
+	print_table_row([" ", "----------"])
+	print_table_row([
+			"Total profit: ",
+			strfmt(getsol(TotalProfit)/1e6, 0, 3)])
+	print_table_row([" ", "----------"])
 	writeln
 	
 	!
@@ -356,21 +378,21 @@ procedure generate_report(title:string, tag:string)
 	if ReportOptGenSched then
 		print_heading("GENERATION SCHEDULE", "=")
 		
-		ColWidth := round(ReportMaxWidth/7)
+		cw := round(ReportMaxWidth/7)
 		writeln("-"*ReportMaxWidth)
-		write(strfmt(" ", ColWidth))
-		forall(t in Times) write(strfmt(t, ColWidth))
+		write(strfmt(" ", cw))
+		forall(t in Times) write(strfmt(t, cw))
 		writeln
 		writeln("-"*ReportMaxWidth)
 		forall(s in Source) do
-			write(strfmt(s, ColWidth))
-			forall(t in Times) write(strfmt(getsol(Generate(s,t)), ColWidth))
+			write(strfmt(s, cw))
+			forall(t in Times) write(strfmt(getsol(Generate(s,t)), cw))
 			writeln
 		end-do
 		
 		writeln("."*ReportMaxWidth)
-		write(strfmt("Reservoir lvl", ColWidth))
-		forall(t in Times) write(strfmt(getsol(HydroReserve(t)), ColWidth))
+		write(strfmt("Reservoir lvl", cw))
+		forall(t in Times) write(strfmt(getsol(HydroReserve(t)), cw))
 		writeln
 		writeln("-"*ReportMaxWidth)
 		
