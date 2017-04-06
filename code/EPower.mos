@@ -84,7 +84,8 @@ forward procedure initialize_data
 forward procedure print_heading(title:string, uchar:string)
 forward	procedure generate_report(title:string, tag:string)
 forward procedure carbon_loop(carbon_allocation:real, tag:string)
-
+forward	procedure t_rule(char:text, width:integer)
+forward	procedure t_row(cells:list of string, cw:integer)
 
 !
 ! LOAD DATA FROM FILE
@@ -317,23 +318,35 @@ function getprevperiod(t:integer):integer
 	returned := ((((t-2) mod n) + n) mod n) + 1
 end-function
 
+! Print a table rule
+procedure t_rule(char:text, width:integer)
+	writeln(char*width)
+end-procedure
+procedure t_rule(char:text)
+	width := ReportMaxWidth
+	t_rule(char, width)
+end-procedure
+procedure t_rule
+	char := "-"
+	t_rule(char)
+end-procedure
+
 ! Print a table row
-procedure print_table_row(cells:list of string, cw:integer)
+procedure t_row(cells:list of string, cw:integer)
+	returned := ""
 	forall(c in cells) do
 		write(strfmt(c, cw))
 	end-do
 	writeln
 end-procedure
-
-! Overloaded version for default cw
-procedure print_table_row(cells:list of string)
+procedure t_row(cells:list of string)
 	n := getsize(cells)
 	if n < 4 then 
 		cw := 20
 	else
 		cw := round(ReportMaxWidth / getsize(cells))
 	end-if
-	print_table_row(cells, cw)
+	t_row(cells, cw)
 end-procedure
 
 ! Print a simple heading
@@ -354,21 +367,13 @@ procedure generate_report(title:string, tag:string)
 	
 	print_heading("REVENUE BREAKDOWN", "=")
 	
-	print_table_row([" ", "(£m)"])
-	print_table_row([
-			"Total revenue: ",
-			strfmt(getsol(TotalRevenue)/1e6, 0, 3)])
-	print_table_row([
-			"Running costs: ",
-			"(" + strfmt(getsol(TotalRunningCost)/1e6, 0, 3) + ")"])
-	print_table_row([
-			"Increase costs: ",
-			"(" + strfmt(getsol(TotalIncreaseCost)/1e6, 0, 3) + ")"])
-	print_table_row([" ", "----------"])
-	print_table_row([
-			"Total profit: ",
-			strfmt(getsol(TotalProfit)/1e6, 0, 3)])
-	print_table_row([" ", "----------"])
+	t_row([" ", "(£m)"])
+	t_row(["Total revenue:", strfmt(getsol(TotalRevenue)/1e6, 0, 3)])
+	t_row(["Running costs:", "(" + strfmt(getsol(TotalRunningCost)/1e6, 0, 3) + ")"])
+	t_row(["Increase costs:", "(" + strfmt(getsol(TotalIncreaseCost)/1e6, 0, 3) + ")"])
+	t_row([" ", "----------"])
+	t_row(["Total profit:", strfmt(getsol(TotalProfit)/1e6, 0, 3)])
+	t_row([" ", "----------"])
 	writeln
 	
 	!
@@ -379,22 +384,23 @@ procedure generate_report(title:string, tag:string)
 		print_heading("GENERATION SCHEDULE", "=")
 		
 		cw := round(ReportMaxWidth/7)
-		writeln("-"*ReportMaxWidth)
+		
+		t_rule
 		write(strfmt(" ", cw))
 		forall(t in Times) write(strfmt(t, cw))
 		writeln
-		writeln("-"*ReportMaxWidth)
+		t_rule
 		forall(s in Source) do
 			write(strfmt(s, cw))
 			forall(t in Times) write(strfmt(getsol(Generate(s,t)), cw))
 			writeln
 		end-do
 		
-		writeln("."*ReportMaxWidth)
+		t_rule(".")
 		write(strfmt("Reservoir lvl", cw))
 		forall(t in Times) write(strfmt(getsol(HydroReserve(t)), cw))
 		writeln
-		writeln("-"*ReportMaxWidth)
+		t_rule
 		
 		! Output a standard CSV file for the model
 		if ReportOutputCSV then
