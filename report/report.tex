@@ -1,5 +1,3 @@
-% this is reportMathew.tex, I just renamed it and got rid of my original
-
 \documentclass{article}
 
 \input{preamble.tex}
@@ -34,7 +32,7 @@
     
     \section{Base Case - Current Operating Practice}
 	
-    In order to investigate the proposed scnearios, we first look at the base case--that is, we build a model which replicates \EPower's current day-to-day operations.
+    In order to investigate the proposed scenarios, we first look at the base case--that is, we build a model which replicates \EPower's current day-to-day operations.
     
     The primary modeling considerations for \EPower's operations include: the demand level for electricity from consumers; the generation capacities, costs, and limitations of each electricity source; regulatory limits on emissions that arise from its generation activities; and the price charged for each unit of electricity sold.  Demand for electricity varies throughout the day, which is split into a number of variable-length periods.  As stated, the objective is the maximize profit while meeting the demand and other constraints. Full details can be found in Appendix A and in the attached \texttt{Xpress-Mosel} model file.
     
@@ -89,7 +87,7 @@
     	
         \item  Coal use is entirely eliminated.  Coal is a very cheap source of energy (best MW per \textsterling?) but naturally has a very high emission level for carbon (worst emissions per MW?).
         
-        \item We see the interconnect come into play here, whereas it wasn't required in the base model.  The interconnect is an expensive (the most expensive?) source of electricity and is best utilized as an emergency buffer for extraordinary situations (see e.g. the following scenario).  The fact that a reduction in CO2 limits makes the interconnect come up in long-term day-to-day operations is \textbf{bad}, costly and very concerning.  Therefore it's desirable to make an investment in increasing capacity elsewhere.  That is what we address now.
+        \item We see the interconnect come into play here, whereas it wasn't required in the base model.  The interconnect is an expensive (the most expensive?) source of electricity and is best utilized as an emergency buffer for extraordinary situations (see e.g. the following scenario).  The fact that a reduction in CO2 limits makes the interconnect come up in long-term day-to-day operations suggests something is not quite appropriate about the schedule.  But the schedule is already optimal in terms of the resources currently available.  Therefore it's desirable to make an investment in increasing capacity elsewhere.  That is what we address now.
     
     \end{itemize}
     

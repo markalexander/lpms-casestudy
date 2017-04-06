@@ -1,4 +1,7 @@
 
+\usepackage{pgf
+plotstable}
+
 % Color theme 1
 % \definecolor{cGas}{RGB}{253,180,98}
 % \definecolor{cCoal}{RGB}{190,186,218}
@@ -15,7 +18,62 @@
 \definecolor{cHydro}{RGB}{166,206,227}
 \definecolor{cInterconnect}{RGB}{251,154,153}
 
+\newcommand{\chartheight}{7cm}
+\newcommand{\chartlegendpos}{(0.5,-0.2)}
+
 \newcommand{\chartgenschedstacked}[2]{%
+    \pgfplotstableread[col sep=comma]{#2}\loadedtable
+    \begin{tikzpicture}
+        \begin{axis}[
+        	title={#1},
+            ymin=0,
+            minor tick num=4,
+            enlarge x limits=false,
+            const plot,
+            axis on top,
+            stack plots=y,
+            cycle multi list={%
+                {cWind!60!black,fill=cWind},%
+                {cNuclear!60!black,fill=cNuclear},%
+                {cGas!60!black,fill=cGas},%
+                {cCoal!60!black,fill=cCoal},%
+                {cInterconnect!60!black,fill=cInterconnect},%
+                {cHydro!60!black,fill=cHydro},%
+             },
+            xlabel={Time (h)},
+            ylabel={Generation (GW)},
+            width=\textwidth,
+            height=\chartheight,
+            legend style={
+                area legend,
+                at={\chartlegendpos},
+                anchor=north,
+                legend columns=3}
+            ]
+
+        \addplot table[x=StartTime,y expr=\thisrow{Wind} * 0.001] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y expr=\thisrow{Nuclear} * 0.001] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y expr=\thisrow{Gas} * 0.001] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y expr=\thisrow{Coal} * 0.001] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y expr=\thisrow{Interconnect} * 0.001] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y expr=\thisrow{Hydro} * 0.001] from \loadedtable \closedcycle;
+        \legend{Wind, Nuclear, Gas, Coal, Intercon., Hydro}
+        \end{axis}
+    \end{tikzpicture}%
+}
+
+
+
+\newcommand{\productiontable}[1]{%
+    \begin{tabular}{lcccccc}
+		\hline
+		\textbf{Period} & \textbf{Gas} & \textbf{Coal} & \textbf{Nuclear} & \textbf{Wind} & \textbf{Hydro} & \textbf{Interconnect} \\ \hline
+		\csvreader[head to column names]{#1}{}
+		{\Period & \Gas & \Coal & \Nuclear & \Wind & \Hydro & \Interconnect \\} \\ \hline
+    \end{tabular}
+}
+
+\newcommand{\chartgencarbonprice}[2]{%
     \pgfplotstableread[col sep=comma]{#2}\loadedtable
     \begin{tikzpicture}
         \begin{axis}[
@@ -42,12 +100,12 @@
                 area legend,
                 at={(0.5,-0.2)},
                 anchor=north,
-                legend columns=2}
+                legend columns=3}
             ]
 
         \addplot table[x=StartTime,y=Gas] from \loadedtable \closedcycle;
-        \addplot table[x=StartTime,y=Coal] from \loadedtable \closedcycle;
         \addplot table[x=StartTime,y=Nuclear] from \loadedtable \closedcycle;
+        \addplot table[x=StartTime,y=Coal] from \loadedtable \closedcycle;
         \addplot table[x=StartTime,y=Wind] from \loadedtable \closedcycle;
         \addplot table[x=StartTime,y=Hydro] from \loadedtable \closedcycle;
         \addplot table[x=StartTime,y=Interconnect] from \loadedtable \closedcycle;
@@ -59,13 +117,54 @@
 
 
 
-\newcommand{\productiontable}[1]{%
-    \begin{tabular}{lcccccc}
-		\hline
-		\textbf{Period} & \textbf{Gas} & \textbf{Coal} & \textbf{Nuclear} & \textbf{Wind} & \textbf{Hydro} & \textbf{Interconnect} \\ \hline
-		\csvreader[head to column names]{#1}{}
-		{\Period & \Gas & \Coal & \Nuclear & \Wind & \Hydro & \Interconnect \\} \\ \hline
-    \end{tabular}
+%############################################################
+% Here is Matthew's very badly done graph of Hydro, Pump, and Reserve
+% #####
+
+% Color theme
+\definecolor{cHydroReserve}{RGB}{253,191,111}
+\definecolor{cPump}{RGB}{178,223,138}
+\definecolor{cHydro}{RGB}{166,206,227}
+
+\pgfplotsset{
+    ylabel right/.style={
+        after end axis/.append code={
+            \node [rotate=90, anchor=north] at (rel axis cs:1,0.5) {#1};
+        }   
+    }
 }
 
-	
+
+\newcommand{\charthydro}[2]{%
+    \pgfplotstableread[col sep=comma]{#2}\loadedtable
+    \begin{tikzpicture}
+        \begin{axis}[
+        	title={#1},
+            ymin=0,
+            minor tick num=4,
+            enlarge x limits=false,
+            const plot,
+            axis on top,
+            xlabel={Time (h)},
+            ylabel={Power (MW)},
+            width=\textwidth,
+            height=7cm,
+            ylabel right=Energy (MWh),
+            legend style={
+                area legend,
+                at={(0.5,-0.2)},
+                anchor=north,
+                legend columns=3}
+            ]
+
+        \addplot table[x=StartTime,y=Hydro] from \loadedtable;
+        \addplot table[x=StartTime,y=Pump] from \loadedtable;
+        \addplot table[x=StartTime,y=HydroReserve] from \loadedtable;
+        %\addplot+[stack plots=false] table[x=time,y=memtotal]     from \loadedtable;
+        \legend{Discharge, Pump, Reserve Level}
+        \end{axis}
+    \end{tikzpicture}%
+}
+% #######################
+% End of badly done graph
+% #######################

@@ -1,14 +1,18 @@
 \documentclass{beamer}
-
+\usepackage[font={footnotesize,it}]{caption}
 \input{preamble.tex}
 
+%\setbeameroption{show notes}
+
+% Custom chart settings for presentation only
+\renewcommand{\chartheight}{5.5cm}
+\renewcommand{\chartlegendpos}{(0.5,-0.3)}
 
 % Presentation theme/color/etc
 \mode<presentation>
 {
     \usetheme{default}
     \usecolortheme{orchid}
-    \usefonttheme{professionalfonts}
     \setbeamertemplate{navigation symbols}{}
     \setbeamertemplate{caption}[numbered]
 }
@@ -16,88 +20,399 @@
 % Details
 \title[EPower Case Study]{\Huge EPower\\[0.2cm]\large Case Study}
 
-\institute{University of Edinburgh}
-\date{}
+\institute{LPMS Consultancy}
 
 \begin{document}
 	
     % ################################################
-    %  00 - TITLE
+    %  TITLE, INTRO AND BASE CASE [MATTHEW]
     % ################################################
+    
+    %
+    % TITLE PAGE
+    %
     
     \begin{frame}
     	\titlepage
     \end{frame}
-
-
-    % ################################################
-    %  01 - INTRODUCTION
-    % ################################################
     
-    \begin{frame}{Introduction}
-
-        \begin{itemize}
-           \item a
-        \end{itemize}
+    %
+    % OVERVIEW
+    %
+    
+    \begin{frame}{Topic Overview}
         
+        \tableofcontents
+            
     \end{frame}
     
-    \begin{frame}{Base Case}
+    %
+    % CURRENT OPERATIONS - OVERVIEW
+    %
+    
+    \section{Current Operations}
+    
+    \begin{frame}{Current Operations - Overview}
     	\begin{itemize}
-    	\item a
+    	\item Objective: maximize profit
+        \item Decisions: Generate, Pump, Hydro reserve, Increase 
+        \item Considerations: demand, max output, costs, emissions limits, price of electricity
+        \item Optimal: total daily profit of £2 million
+        	\begin{itemize}
+                \item Revenue: £15 million
+                \item Running cost: £13 million
+                \item Increase cost: £0.4 million
+        	\end{itemize}
     	\end{itemize}
-    
     \end{frame}
     
-    \begin{frame}{Base Case}
+    %
+    % CURRENT OPERATIONS - GENERATION SCHEDULE
+    %
     
-        \begin{figure}[H]
+    \begin{frame}{Current Operations - Generation Schedule}
+    
+    	\begin{figure}[H]
             \centering
-            \chartgenschedstacked{Optimal Generation Schedule for Base Scenario}{output/base.csv}
+            \chartgenschedstacked{Optimal Generation Schedule for Current Operations}{output/base.csv}
+        \end{figure}%
+
+    \end{frame}
+    
+    %
+    % CURRENT OPERATIONS - OBSERVATIONS
+    %
+    
+    \begin{frame}{Current Operations - Observations}
+    	\begin{itemize}
+            \item Wind power always operates at average max output
+            \item Hydro fully used during evening
+            \item Pump during quiet hours
+            \item Constant nuclear usage
+            \item No interconnect usage        
+    	\end{itemize}
+    \end{frame}
+    
+    %
+    % CURRENT OPERATIONS - HYDRO ACTIVITY
+    %
+    
+    \begin{frame}{Current Operations - Hydro Activity}
+    	
+        \todo[inline,caption={}]{\textbf{Julian:} Fix! N.B. Reserve changes continuously as it's integral of power.}
+    	
+        \todo[inline,caption={}]{\textbf{Mark:} Units on Energy axis. Use GW and scale rather than MW and exponential.}
+        
+    	\begin{figure}[H]
+            \centering
+            \charthydro{Hydro generation, pump, and reserve}{output/base.csv}
         \end{figure}
     
     \end{frame}
     
 
+    % ################################################
+    %  DAILY MULTIPLIERS [ABBY]
+    % ################################################
     
+    \section{Preparing for Uncertainty}
     
+    %
+    % EFFECTS
+    %
     
-    \begin{frame}{Strategic Decisions - Reduced CO\textsubscript{2} Limit}
-    	If the CO\textsubscript{2} emission limit has reduced, our model would change the generating policy to the following:
+    \begin{frame}{20\% Increase in Demand and Wind - Effects}
+    
+        \begin{figure}[H]
+            \centering
+            \chartgenschedstacked{Optimal Generation Schedule for 20\% Increase in Demand and Wind}{output/multipliers.csv}
+        \end{figure}
+        
+        \note[item]{Primary change is that we now need to make use of the interconnect to deal with peak demand.}
+        
+        \note[item]{This rapidly eats into profit because the interconnect is (the most) expensive sources.}
+    
+    \end{frame}
+    
+    %
+    % STRATEGIES
+    %
+    
+    \begin{frame}{20\% Increase in Demand and Wind - Strategies}
+    	
+        \todo[inline,caption={}]{\textbf{Julian:} Bit too much text.  Only put on slides what you expect listener(?) to read, otherwise why is it there?}
+        
+        \note{Possible strategies:}
         
         \begin{itemize}
-    	\item a
-    	\end{itemize}
+        
+            \item  Less variability $=$ lower costs. \textbf{Flatten out demand} throughout the day, e.g. \textbf{offering incentives} to consumers for consuming during off-peak hours and avoiding peak hours.
+            	
+                \begin{itemize}
+            
+            		\item For large/industrial customers: build relationships and negotiate agreements.
+            
+            		\item For domestic customers: \textbf{introducing differential tariffs} PED calculation.
+            
+                \end{itemize}
+            
+            \item \textbf{Increase maximum hydro output} if viable.
+            
+            	\begin{itemize}
+                	
+                    \item Hydro reservoir serves a similar overflow function as the interconnect but is much cheaper.
+                    
+                    \item Here, between 1600 and 2000, hydro is being fully utilized and the marginal value of additional capacity is \textsterling 45.
+                    
+                    	\note[item]{This value can help determine if additional capacity is worthwhile.}
+                    
+                \end{itemize}   
+            
+        \end{itemize}
+    
     \end{frame}
     
-    \begin{frame}{Additional Capacity Solution}
+    %
+    % GENERALIZATION
+    %
+	
+    \begin{frame}{Variable Demand and Wind - Generalization}
+    	
+        	\begin{itemize}
+
+                \item Optimal strategy will vary by multiplier value.  Hard to decide general optimal policy given only one of them.
+
+                \item  Better approach: \textbf{simulate effect on profit} using \textit{distributions} of wind and demand inputs \note[item]{ to obtain a generalized optimal policy}.
+
+                \item Best approach: \textbf{adapt dynamically to changing conditions} throughout the day.  May not be suitable for some sources.  \note[item]{Not all sources can adapt dynamically.  How to decide nuclear output is critical.}
+
+			\end{itemize}   
+    
+    \end{frame}
+
+    
+    % ################################################
+    %  REDUCED CO2 - INVESTING IN ADDITIONAL CAPACITY [MARK]
+    % ################################################
+    
+    \section{Planning for CO\texorpdfstring{\textsubscript{2}}{2} Reduction}
+    
+    \subsection{Investing in Additional Capacity}
+    
+    %
+    % CURRENT SETUP
+    %
+    
+    \begin{frame}{Reduced CO\textsubscript{2} Limits - Current Setup}
+    
+        \begin{itemize}
+    
+    		\item Scenario: CO\textsubscript{2} emissions limits are reduced by 50\%.
+                
+                \pause
+    	
+        	\item If the new CO\textsubscript{2} limits were introduced today:
+    
+            \begin{itemize}
+
+                \item A daily \textbf{loss} of \textsterling 2.5 million would be incurred.
+
+                \item Unlike the previous case, this loss occurs on what is considered to be the \textit{average} day.  Long-term losses would likely be extensive.
+
+                \item What's happening?  Let's look at the utilization of sources as CO\textsubscript{2} ramps down.
+
+            \end{itemize}
+         
+         \end{itemize}
+        
+    \end{frame}
+    
+    %
+    % RAMPING DOWN CO2 AND SOURCE COMPOSITION
+    %
+    
+    \begin{frame}{Reduced CO\textsubscript{2} Limits - Effect on Source Utilization}
+    	
+         \todo[inline,caption={}]{\textbf{Julian:} Trend in total generation source use per day as CO2 limit changes is more important than the actual schedule for a day with SO/CO2 reduction.}
+         
+        \todo[inline,caption={}]{\textbf{Mark:} Use a chart similar to Szymon's to show the effect of ramping down CO2 on TOTAL source use p/day.}
+        
+        \missingfigure
+        
+        % Coal is completely eliminated.  Coal is currently the prime cheap energy source, but it's just too carbon-heavy to have a place in this reduced carbon schedule.  This pushes up costs.
+        
+        % Again use of the interconnect, which is expensive.  But in this case as said it's being used on the average day, which is much more of a problem than using it as a rare overflow safety feature.
+        
+    \end{frame}
+    
+    %
+    % 1 GW INVESTMENT
+    %
+    
+    \begin{frame}{Reduced CO\textsubscript{2} Limits - Investing in Output Capacity}
+    
+        Proposal: invest in 1 GW of extra capacity for one source.
+        
+        	\pause
+    
+              \begin{itemize}
+
+                  \item The best outcome arises from adding the 1 GW to wind capacity, closely followed by nuclear.
+                  
+                  \pause
+
+                  \item In either case, losses are approximately halved to \textsterling 1.4 million.
+                  
+                  \pause
+
+                  \item \note[item]{But this is still a loss.}  In fact, \textbf{there is no investment of 1 GW that will result in a return to profit}, let alone achieve current profit levels.
+
+              \end{itemize}
+        
+    \end{frame}
+    
+    %
+    % GENERALIZED INVESTMENT
+    %
+    
+    \begin{frame}{Reduced CO\textsubscript{2} Limits - Investing in Output Capacity}
+
+              
+               Further analysis:
+              
+                \begin{itemize}
+
+                      \item A greater increase in capacity is required, but where and how much?  Our analysis shows:
+                      
+                      \pause
+                      
+                        \item A 2.5 GW investment in either wind or nuclear output capacity would return operations to a small profit of approximately \textsterling 200,000-300,000.
+
+\item However, this trend does not continue for both.
+
+	\pause
+
+\item \textbf{A 4 GW expansion of wind capacity would restore profit to current levels}.
+
+\item A 4 GW expansion of Nuclear will not yield the same outcome, due to the increased running costs of nuclear power.
+
+%\item Investment in the capacity of other sources is not generally worthwhile.
+
+                \end{itemize}
+        
+    \end{frame}
+    
+    
+    
+    % ################################################
+    %  REDUCED CO2 - EMISSIONS MARKET [SZYMON]
+    % ################################################
+    
+    \subsection{Emissions Market Schemes and Carbon Tax}
+    
+    %
+    % CARBON CREDITS MARKET
+    %
+    
+  \begin{frame}{Carbon Credits Market}
+  
+      Under stricter CO\textsubscript{2} limits EPower will be allocated 100000 units of CO\textsubscript{2}:
+      \small
+        \begin{itemize}
+            \item Fair price of carbon dioxide: £60
+
+            \item EPower can propose introducing offsetting actions in exchange for higher emissions limit 
+            \item Use carbon credits market
+        \end{itemize}      
+    
+    	\todo[inline,caption={}]{\textbf{Julian:} Make this chart larger--ditch the caption if necessary.}
+        
+        \begin{figure}
+        \centering
+        	\includegraphics[width=0.8\textwidth]{Graphs/carbon_credit.pdf}
+            \small
+\caption{Expected profit and optimal production schedule with various prices of emission permits}
+        \end{figure}
+               
+        
+    \end{frame}
+        
+    %
+    % CARBON TAX
+    %
+    
+   	\begin{frame}{Carbon Tax}    
+    
+    	\todo[inline,caption={}]{\textbf{Mark:} motivate this by saying the considerations are largely similar to the scenarios being considered?  Essentially "there is another CO2-related scenario on the horizon.  Incorporating this into the current considerations will provide a better longer term/more durable strategy, etc."  No use them devising a policy for reduced CO2 (and investing tons of capital into particular sources) if it's not also at least reasonably compatible with the Paris Agreement changes which will come down the pipeline.}
+
+        In light of Paris Agreement, EPower should prepare for "carbon tax". Following are likely to be impacted: 
+        \small
+            \begin{itemize}
+            \item Market price of electricity
+            \item Electricity demand
+            \item Running cost of interconnect
+            \end{itemize}
+
+            \todo[inline,caption={}]{\textbf{Julian:} At least drop Fig \# to avoid line break.}
+
+             \begin{figure}
+            \centering
+                \includegraphics[width=0.8\textwidth]{Graphs/carbon_tax.pdf}
+                \small
+            \caption{Expected profit and optimal production schedule with various tax levels}
+            \end{figure}
+        
+    \end{frame}
+    
+    
+  
+    
+    % ################################################
+    %  SUMMARY OF RECOMMENDATIONS [ABBY]
+    % ################################################
+
+	\section{Summary of Recommendations}
+    
+    %
+    % SUMMARY
+    %
+    
+    \begin{frame}{Summary of Recommendations}
     
     	\begin{itemize}
-    	\item a
-    	\end{itemize}
-    \end{frame}
-    
-    \begin{frame}{Additional Capacity Solution}
-    
-    	\begin{itemize}
-    	\item a
-    	\end{itemize}
-    \end{frame}
-    
-    \begin{frame}{Adjucted Wind Power and Demand}
-    
-    	\begin{itemize}
-    	\item a
-    	\end{itemize}
-    
-    \end{frame}
-    
-    \begin{frame}{Extension}
-    
-    \end{frame}
-    
-    \begin{frame}{Further Exploration}
-    
+        
+        	\item Dealing with variable demand and wind availability:
+
+                \begin{itemize}
+
+                    \item Reduce variability of demand throughout the day using incentives for consumers.
+
+                    \item Invest in additional capacity to reduce reliance on expensive sources:
+                    
+                    \begin{itemize}
+                    	
+                        \item Wind capacity is most valuable.
+                        
+                        \item Hydro output may also be worthwhile.
+                        
+                    \end{itemize}
+
+                \end{itemize}
+        
+        	\item Reduced CO\textsubscript{2} limits:
+
+                \begin{itemize}
+
+                    \item Add approximately 4000 MW to wind power max capacity
+                    
+                    \item Other considerations: emission credits market, carbon tax.  Technology to clean the output of `dirty' and cheap sources like coal.
+
+                \end{itemize}
+        
+        	\item Key takeaway: \textbf{a significant investment in wind capacity would be beneficial} in both scenarios considered.
+        
+        \end{itemize}
+        
     \end{frame}
     
     
