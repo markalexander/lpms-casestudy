@@ -20,11 +20,11 @@ parameters
 	ReportMaxWidth = 120         ! Maximum width for console output
 	
 	! Which model do you want to run?
-	BaseCaseRun = true
-	VariableDemandRun = true
+	BaseCaseRun = false
+	VariableDemandRun = false
 	ReducedCO2Run = true
-	SourceExpansionRun = true
-	EmissionMarketRun = true
+	SourceExpansionRun = false
+	EmissionMarketRun = false
 	
 end-parameters
 
@@ -85,7 +85,10 @@ forward procedure print_heading(title:string, uchar:string)
 forward	procedure generate_report(title:string, tag:string)
 forward procedure carbon_loop(carbon_allocation:real, tag:string)
 forward	procedure t_rule(char:text, width:integer)
+forward	procedure t_rule(char:text)
+forward	procedure t_rule
 forward	procedure t_row(cells:list of string, cw:integer)
+forward	procedure t_row(cells:list of string)
 
 !
 ! LOAD DATA FROM FILE
@@ -163,79 +166,126 @@ end-if
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 
 if ReducedCO2Run then
-	
-	EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
-	
-	maximize(TotalProfit)
-	generate_report("STRICTER CO2 LIMITS", 'co2')
 
-end-if
-
-! Source expansion
-
-if SourceExpansionRun then
-
-	EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
-	
-	print_heading("SOURCE EXPANSION DECISION", "=")
-	cw := round(ReportMaxWidth/9)
-	writeln("-"*ReportMaxWidth)
-	write(strfmt("Inrement:", cw), strfmt("Source:", cw), strfmt("Profit (£m)", cw))
-	forall(s in Source) write(strfmt(s, cw))
+	! Ramp down CO2 limit to 50%
+	print_heading("DAILY SOURCE UTILIZATION BY CO2 REDUCTION", "=")
+	cw := round(ReportMaxWidth/7)
+	t_rule
+	write(strfmt("Reduction (%)", cw))
+	forall(s in Source) do
+		write(strfmt(s, cw))
+	end-do
 	writeln
-	writeln("-"*ReportMaxWidth)
-	
-	forall(OutputIncrease in [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) do
+	t_rule
+	forall(Factor in [0.9, 0.8, 0.7, 0.6, 0.5]) do
 		
+		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Factor
+		
+		maximize(TotalProfit)
+		
+		write(strfmt((1-Factor)*100, cw))
 		forall(s in Source) do
+			totalgen := sum(t in Times) getsol(Generate(s,t))
+			write(strfmt(totalgen, cw))
+		end-do
+		writeln
+	
+	end-do
+	t_rule
+		
+		
+	fopen(ReportOutputDir + 'co2rampdown.csv', F_OUTPUT)
+	write("Reduction")
+	forall(s in Source) do
+		write(",", s)
+	end-do
+	write(",Profit")
+	writeln
+	forall(Factor in [0.9, 0.8, 0.7, 0.6, 0.5]) do
+		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Factor
+		
+		maximize(TotalProfit)
+		
+		write((1-Factor)*100)
+		forall(s in Source) do
+			totalgen := sum(t in Times) getsol(Generate(s,t))
+			write(",", totalgen)
+		end-do
+		write(",", getobjval)
+		writeln
+	
+	end-do
+	fclose(F_OUTPUT)
+	
+	
+	! Full reporting for the 50% reduction
+	generate_report("STRICTER CO2 LIMITS - 50%", 'co2')
+	
+	! Source expansion
+	if SourceExpansionRun then
+	
+		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
+		
+		print_heading("SOURCE EXPANSION DECISION", "=")
+		cw := round(ReportMaxWidth/9)
+		writeln("-"*ReportMaxWidth)
+		write(strfmt("Inrement:", cw), strfmt("Source:", cw), strfmt("Profit (£m)", cw))
+		forall(s in Source) write(strfmt(s, cw))
+		writeln
+		writeln("-"*ReportMaxWidth)
+		
+		forall(OutputIncrease in [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) do
 			
-			if s = "Wind" then 
-				! Company is about to finish instalation of wind capacity (see FAQ)
-				MaxOutput("Wind") :=  MaxOutput("Wind") + (OutputIncrease / 2) 
-			else
-				! Increase the max output of this source by 1 GW
-				MaxOutput(s) := MaxOutput(s) + OutputIncrease
-			end-if
-			
-			! Additional increases for hydro
-			if s = "Hydro" then 
-				HydroIncreaseFactor := 1 + (0.5 * OutputIncrease/1000)
-				NaturalHydroInflow := NaturalHydroInflow * HydroIncreaseFactor
-				MaxHydroReserve := MaxHydroReserve * HydroIncreaseFactor
-			end-if
-			
-			! Fix constraints
-			forall(so in Source, t in Times) do
-				HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
-				OutputCS(so,t) := Generate(so,t) <= MaxOutput(so)
-				PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
+			forall(s in Source) do
+				
+				if s = "Wind" then 
+					! Company is about to finish instalation of wind capacity (see FAQ)
+					MaxOutput("Wind") :=  MaxOutput("Wind") + (OutputIncrease / 2) 
+				else
+					! Increase the max output of this source by 1 GW
+					MaxOutput(s) := MaxOutput(s) + OutputIncrease
+				end-if
+				
+				! Additional increases for hydro
+				if s = "Hydro" then 
+					HydroIncreaseFactor := 1 + (0.5 * OutputIncrease/1000)
+					NaturalHydroInflow := NaturalHydroInflow * HydroIncreaseFactor
+					MaxHydroReserve := MaxHydroReserve * HydroIncreaseFactor
+				end-if
+				
+				! Fix constraints
+				forall(so in Source, t in Times) do
+					HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
+					OutputCS(so,t) := Generate(so,t) <= MaxOutput(so)
+					PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
+				end-do
+				
+				! Reoptimize
+				maximize(TotalProfit)
+				
+				! Output
+				write(strfmt(OutputIncrease, cw))
+				write(strfmt(s, cw), "      ", strfmt(getobjval/1e6, 0, 3))
+				forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)), cw))
+				writeln
+				
+				! Reset data for re-use
+				initialize_data
 			end-do
 			
-			! Reoptimize
-			maximize(TotalProfit)
-			
-			! Output
-			write(strfmt(OutputIncrease, cw))
-			write(strfmt(s, cw), "      ", strfmt(getobjval/1e6, 0, 3))
-			forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)), cw))
-			writeln
-			
-			! Reset data for re-use
-			initialize_data
+			writeln("."*ReportMaxWidth)
+		
 		end-do
 		
-		writeln("."*ReportMaxWidth)
-	
-	end-do
-	
-	EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
-	forall(s in Source, t in Times) do
-		HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
-		OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
-		PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
-	end-do
-end-if
+		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
+		forall(s in Source, t in Times) do
+			HydroReserveCS(t) := HydroReserve(t) <= MaxHydroReserve
+			OutputCS(s,t) := Generate(s,t) <= MaxOutput(s)
+			PumpCS(t) := Pump(t) <= MaxOutput("Hydro")
+		end-do
+	end-if
 
+end-if
 
 !
 ! SCENARIO: VARIABLE DEMAND/WIND AVAIL.
