@@ -176,9 +176,9 @@ if ReducedCO2Run then
 		write(strfmt(s, cw))
 	end-do
 	writeln
-	t_rule
-	forall(Factor in [0.9, 0.8, 0.7, 0.6, 0.5]) do
-		
+	t_rule	
+	Factor := 0.9
+	repeat
 		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Factor
 		
 		maximize(TotalProfit)
@@ -188,8 +188,9 @@ if ReducedCO2Run then
 			write(strfmt(getsol(TotalEnergyGenerated(s)), cw))
 		end-do
 		writeln
-	
-	end-do
+		
+		Factor -= 0.05
+	until Factor < 0.5
 	t_rule
 		
 		
@@ -200,7 +201,8 @@ if ReducedCO2Run then
 	end-do
 	write(",Profit")
 	writeln
-	forall(Factor in [0.9, 0.8, 0.7, 0.6, 0.5]) do
+	Factor := 0.9
+	repeat
 		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Factor
 		
 		maximize(TotalProfit)
@@ -211,8 +213,9 @@ if ReducedCO2Run then
 		end-do
 		write(",", strfmt(getobjval/1e6, 0, 3))
 		writeln
-	
-	end-do
+		
+		Factor -= 0.05
+	until Factor < 0.5
 	fclose(F_OUTPUT)
 	
 	
