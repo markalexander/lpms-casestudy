@@ -211,7 +211,7 @@ if ReducedCO2Run then
 			totalgen := sum(t in Times) getsol(Generate(s,t))
 			write(",", totalgen)
 		end-do
-		write(",", getobjval)
+		write(",", strfmt(getobjval/1e6, 0, 3))
 		writeln
 	
 	end-do
