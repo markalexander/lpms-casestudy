@@ -584,7 +584,6 @@ procedure initialize_data
 		Emissions EmissionsLimit
 		MaxHydroReserve NaturalHydroInflow HydroPowerEfficiencyFrac ElectricityPrice
 		DemandMu WindMu
-		EmissionsCreditPrice
 	end-initializations
 end-procedure
 
