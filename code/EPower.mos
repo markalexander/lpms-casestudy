@@ -273,6 +273,7 @@ if RunModelReducedCO2 then
 			end-do
 		
 			make_table(t_head, t_data)
+			make_csv(t_head, t_data, "co2_sexp_" + s + ".csv")
 			
 		end-do
 		
