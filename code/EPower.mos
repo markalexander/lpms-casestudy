@@ -402,18 +402,20 @@ end-procedure
 
 ! Build a CSV file from a list of headings and a 'matrix' of data
 procedure make_csv(headings:list of string, rows:list of list of real, filename:string)
-	fopen(OutputDir + filename, F_OUTPUT)
-	! Header
-	forall(h in gethead(headings, 1)) write(h)
-	forall(h in gettail(headings, -1)) write(",", h)
-	writeln
-	! Data
-	forall(r in rows) do
-		forall(x in gethead(r, 1)) write(x)
-		forall(x in gettail(r, -1)) write(",", x)
+	if OutputCSV then
+		fopen(OutputDir + filename, F_OUTPUT)
+		! Header
+		forall(h in gethead(headings, 1)) write(h)
+		forall(h in gettail(headings, -1)) write(",", h)
 		writeln
-	end-do
-	fclose(F_OUTPUT)
+		! Data
+		forall(r in rows) do
+			forall(x in gethead(r, 1)) write(x)
+			forall(x in gettail(r, -1)) write(",", x)
+			writeln
+		end-do
+		fclose(F_OUTPUT)
+	end-if
 end-procedure
 
 ! Print a standard table output for the main model and its variations.
