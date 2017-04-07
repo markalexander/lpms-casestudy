@@ -38,6 +38,9 @@ parameters
 	
 end-parameters
 
+! Create output dir
+makedir(OutputDir)
+
 
 !
 ! DECLARE MODEL IDENTIFIERS
