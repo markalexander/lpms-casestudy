@@ -1,16 +1,9 @@
 
-\usepackage{pgf
-plotstable}
+\usepackage{pgfplotstable}
 
-% Color theme 1
-% \definecolor{cGas}{RGB}{253,180,98}
-% \definecolor{cCoal}{RGB}{190,186,218}
-% \definecolor{cNuclear}{RGB}{255,255,179}
-% \definecolor{cWind}{RGB}{141,211,199}
-% \definecolor{cHydro}{RGB}{128,177,211}
-% \definecolor{cInterconnect}{RGB}{251,128,114}
+\newcommand{\chartheight}{7cm}
+\newcommand{\chartlegendpos}{(0.5,-0.2)}
 
-% Color theme 2
 \definecolor{cGas}{RGB}{202,178,214}
 \definecolor{cCoal}{RGB}{180,180,180}
 \definecolor{cNuclear}{RGB}{253,191,111}
@@ -18,14 +11,15 @@ plotstable}
 \definecolor{cHydro}{RGB}{166,206,227}
 \definecolor{cInterconnect}{RGB}{251,154,153}
 
-\newcommand{\chartheight}{7cm}
-\newcommand{\chartlegendpos}{(0.5,-0.2)}
 
-\newcommand{\chartgenschedstacked}[2]{%
-    \pgfplotstableread[col sep=comma]{#2}\loadedtable
+%
+% GENERATION SCHEDULE
+%
+
+\newcommand{\chartgenschedstacked}[1]{%
+    \pgfplotstableread[col sep=comma]{#1}\loadedtable
     \begin{tikzpicture}
         \begin{axis}[
-        	title={#1},
             ymin=0,
             minor tick num=4,
             enlarge x limits=false,
@@ -42,7 +36,7 @@ plotstable}
              },
             xlabel={Time (h)},
             ylabel={Generation (GW)},
-            width=\textwidth,
+            width=\columnwidth,
             height=\chartheight,
             legend style={
                 area legend,
@@ -63,6 +57,156 @@ plotstable}
 }
 
 
+%
+% CO2 RAMPDOWN
+%
+
+\newcommand{\chartrampdown}{%
+\pgfplotstableread[col sep=comma]{output/co2rampdown.csv}\loadedtable
+\begin{tikzpicture}
+
+	\begin{axis}[
+        width=0.9\columnwidth,
+        height=\chartheight,
+		ybar stacked,
+		axis y line*=left,
+		ylabel={Daily Output (GWh)},
+		xlabel={Reduction in CO2 Emissions Limit (\%)},
+        ymin=0,
+        legend style={
+          area legend,
+          at={\chartlegendpos},
+          anchor=north,
+          legend columns=3}
+	]
+	\addplot[cWind!60!black,fill=cWind] table[x=Reduction,y expr=\thisrow{Wind}/1000]{\loadedtable};
+	\addplot[cNuclear!60!black,fill=cNuclear] table[x=Reduction,y expr=\thisrow{Nuclear}/1000]{\loadedtable};
+	\addplot[cGas!60!black,fill=cGas] table[x=Reduction,y expr=\thisrow{Gas}/1000]{\loadedtable};
+	\addplot[cHydro!60!black,fill=cHydro] table[x=Reduction,y expr=\thisrow{Hydro}/1000]{\loadedtable};
+	\addplot[cCoal!60!black,fill=cCoal] table[x=Reduction,y expr=\thisrow{Coal}/1000]{\loadedtable};
+	\addplot[cInterconnect!60!black,fill=cInterconnect] table[x=Reduction,y expr=\thisrow{Interconnect}/1000]{\loadedtable};
+        \legend{Wind, Nuclear, Gas, Hydro, Coal, Intercon.}
+   \end{axis}
+
+	\begin{axis}[
+        width=0.9\columnwidth,
+        height=\chartheight,
+		axis y line*=right,  
+		axis x line = none,
+		ylabel={Profit (\textsterling m)}]
+			\addplot table[x=Reduction,y expr=\thisrow{Profit}] from \loadedtable;
+	\end{axis}  
+
+	\end{tikzpicture}
+}
+
+
+%
+% CO2 CREDIT
+%
+
+\newcommand{\chartcredit}[1]{%
+\pgfplotstableread[col sep=comma]{#1}\loadedtable
+\begin{tikzpicture}
+
+	\begin{axis}[
+        width=0.9\columnwidth,
+        height=\chartheight,
+		ybar stacked,
+		axis y line*=left,
+		xlabel={Carbon Price (\textsterling)},
+		ylabel={Daily Output (GWh)},
+        bar width=4pt,
+        xmin=-5,
+        xmax=105,
+        ymin=0,
+        legend style={
+          area legend,
+          at={(0.5,-0.2)},
+          anchor=north,
+          legend columns=3}
+	]
+	\addplot[cWind!60!black,fill=cWind] table[x=Co2Price,y expr=\thisrow{Wind}/1000]{\loadedtable};
+	\addplot[cNuclear!60!black,fill=cNuclear] table[x=Co2Price,y expr=\thisrow{Nuclear}/1000]{\loadedtable};
+	\addplot[cGas!60!black,fill=cGas] table[x=Co2Price,y expr=\thisrow{Gas}/1000]{\loadedtable};
+	\addplot[cCoal!60!black,fill=cCoal] table[x=Co2Price,y expr=\thisrow{Coal}/1000]{\loadedtable};
+	\addplot[cHydro!60!black,fill=cHydro] table[x=Co2Price,y expr=\thisrow{Hydro}/1000]{\loadedtable};
+	\addplot[cInterconnect!60!black,fill=cInterconnect] table[x=Co2Price,y expr=\thisrow{Interconnect}/1000]{\loadedtable};
+        \legend{Wind, Nuclear, Gas, Coal, Hydro, Intercon.}
+   \end{axis}
+
+	\begin{axis}[
+        width=0.9\columnwidth,
+        height=\chartheight,
+		axis y line*=right,  
+		axis x line = none,
+        xmin=-5,
+        xmax=105,
+		ylabel={Profit (\textsterling m)}
+		]
+			\addplot table[x=Co2Price,y expr=\thisrow{Profit}/1000000] from \loadedtable;
+	\end{axis}  
+
+	\end{tikzpicture}
+}
+
+
+%
+% CARBON TAX
+%
+
+\newcommand{\chartcarbontax}[1]{%
+\pgfplotstableread[col sep=comma]{#1}\loadedtable
+\begin{tikzpicture}
+
+	\begin{axis}[
+        width=0.9\columnwidth,
+        height=\chartheight,
+		ybar stacked,
+		axis y line*=left,
+		xlabel={Carbon Tax (\textsterling)},
+		ylabel={Daily Output (GWh)},
+        bar width=4pt,
+        xmin=-5,
+        xmax=105,
+        ymin=0,
+        legend style={
+          area legend,
+          at={(0.5,-0.2)},
+          anchor=north,
+          legend columns=3}
+	]
+	\addplot[cWind!60!black,fill=cWind] table[x=Co2Price,y expr=\thisrow{Wind}/1000]{\loadedtable};
+	\addplot[cNuclear!60!black,fill=cNuclear] table[x=Co2Price,y expr=\thisrow{Nuclear}/1000]{\loadedtable};
+	\addplot[cGas!60!black,fill=cGas] table[x=Co2Price,y expr=\thisrow{Gas}/1000]{\loadedtable};
+	\addplot[cCoal!60!black,fill=cCoal] table[x=Co2Price,y expr=\thisrow{Coal}/1000]{\loadedtable};
+	\addplot[cHydro!60!black,fill=cHydro] table[x=Co2Price,y expr=\thisrow{Hydro}/1000]{\loadedtable};
+	\addplot[cInterconnect!60!black,fill=cInterconnect] table[x=Co2Price,y expr=\thisrow{Interconnect}/1000]{\loadedtable};
+        \legend{Wind, Nuclear, Gas, Coal, Hydro, Intercon.}
+   \end{axis}
+
+	\begin{axis}[
+        width=0.9\columnwidth,
+        height=\chartheight,
+		axis y line*=right,  
+		axis x line = none,
+        xmin=-5,
+        xmax=105,
+		ylabel={Profit (\textsterling m)}
+		]
+			\addplot table[x=Co2Price,y expr=\thisrow{Profit}/1000000] from \loadedtable;
+	\end{axis}  
+
+	\end{tikzpicture}
+}
+
+
+
+
+%
+% GEN SCHEDULE TABLE
+%
+
 
 \newcommand{\productiontable}[1]{%
     \begin{tabular}{lcccccc}
@@ -72,6 +216,18 @@ plotstable}
 		{\Period & \Gas & \Coal & \Nuclear & \Wind & \Hydro & \Interconnect \\} \\ \hline
     \end{tabular}
 }
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
 
 \newcommand{\chartgencarbonprice}[2]{%
     \pgfplotstableread[col sep=comma]{#2}\loadedtable
@@ -94,7 +250,7 @@ plotstable}
              },
             xlabel={Time (h)},
             ylabel={Generation (MW)},
-            width=\textwidth,
+            width=\columnwidth,
             height=7cm,
             legend style={
                 area legend,
@@ -112,6 +268,8 @@ plotstable}
         %\addplot+[stack plots=false] table[x=time,y=memtotal]     from \loadedtable;
         \legend{Gas, Coal, Nuclear, Wind, Hydro, Interconnect}
         \end{axis}
+	\end{axis}  
+    
     \end{tikzpicture}%
 }
 
@@ -135,36 +293,56 @@ plotstable}
 }
 
 
-\newcommand{\charthydro}[2]{%
-    \pgfplotstableread[col sep=comma]{#2}\loadedtable
+\newcommand{\charthydro}[1]{%
+    \pgfplotstableread[col sep=comma]{#1}\loadedtable
     \begin{tikzpicture}
         \begin{axis}[
-        	title={#1},
             ymin=0,
             minor tick num=4,
             enlarge x limits=false,
             const plot,
             axis on top,
             xlabel={Time (h)},
-            ylabel={Power (MW)},
-            width=\textwidth,
+            ylabel={Power (GW)},
+            width=\columnwidth,
             height=7cm,
-            ylabel right=Energy (MWh),
+            ylabel right=Energy (GWh),
             legend style={
-                area legend,
                 at={(0.5,-0.2)},
                 anchor=north,
                 legend columns=3}
             ]
 
-        \addplot table[x=StartTime,y=Hydro] from \loadedtable;
-        \addplot table[x=StartTime,y=Pump] from \loadedtable;
-        \addplot table[x=StartTime,y=HydroReserve] from \loadedtable;
+        \addplot table[x=StartTime,y expr = \thisrow{Hydro} * 0.001] from \loadedtable;
+        \addplot table[x=StartTime,y expr = \thisrow{Pump} * 0.001] from \loadedtable;
+        %\addplot table[x=StartTime,y=HydroReserve] from \loadedtable; % old reservoir level plot
+        % new reservoir level plot
+        \addplot[
+    sharp plot,
+    mark = square*,
+    ]
+    coordinates {
+    (0,0.800)(6,12.800)(8,13.600)(16,9.600)(20,3.200)(22,0)(24,0.800)
+    };
         %\addplot+[stack plots=false] table[x=time,y=memtotal]     from \loadedtable;
         \legend{Discharge, Pump, Reserve Level}
         \end{axis}
+            
     \end{tikzpicture}%
 }
 % #######################
 % End of badly done graph
 % #######################
+
+
+
+% Hydro table Matthew
+\newcommand{\hydrotable}[1]{%
+    \begin{tabular}{lccc}
+		\hline
+		\textbf{Period} & \textbf{Hydro} & \textbf{Pump} &\textbf{Reserve}
+        \\ \hline
+		\csvreader[head to column names]{#1}{}
+		{\Period & \Hydro & \Pump & \HydroReserve \\} \\ \hline
+    \end{tabular}
+}

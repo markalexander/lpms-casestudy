@@ -74,7 +74,7 @@
     
     	\begin{figure}[H]
             \centering
-            \chartgenschedstacked{Optimal Generation Schedule for Current Operations}{output/base.csv}
+            \chartgenschedstacked{output/base.csv}
         \end{figure}%
 
     \end{frame}
@@ -98,14 +98,10 @@
     %
     
     \begin{frame}{Current Operations - Hydro Activity}
-    	
-        \todo[inline,caption={}]{\textbf{Julian:} Fix! N.B. Reserve changes continuously as it's integral of power.}
-    	
-        \todo[inline,caption={}]{\textbf{Mark:} Units on Energy axis. Use GW and scale rather than MW and exponential.}
-        
+    	    	
     	\begin{figure}[H]
             \centering
-            \charthydro{Hydro generation, pump, and reserve}{output/base.csv}
+            \charthydro{output/base.csv}
         \end{figure}
     
     \end{frame}
@@ -125,7 +121,7 @@
     
         \begin{figure}[H]
             \centering
-            \chartgenschedstacked{Optimal Generation Schedule for 20\% Increase in Demand and Wind}{output/multipliers.csv}
+            \chartgenschedstacked{output/multipliers.csv}
         \end{figure}
         
         \note[item]{Primary change is that we now need to make use of the interconnect to deal with peak demand.}
@@ -139,20 +135,16 @@
     %
     
     \begin{frame}{20\% Increase in Demand and Wind - Strategies}
-    	
-        \todo[inline,caption={}]{\textbf{Julian:} Bit too much text.  Only put on slides what you expect listener(?) to read, otherwise why is it there?}
-        
-        \note{Possible strategies:}
         
         \begin{itemize}
         
-            \item  Less variability $=$ lower costs. \textbf{Flatten out demand} throughout the day, e.g. \textbf{offering incentives} to consumers for consuming during off-peak hours and avoiding peak hours.
+            \item  \textbf{Flatten out demand} throughout the day, e.g. \textbf{offering incentives} to consume during off-peak hours.
             	
                 \begin{itemize}
             
-            		\item For large/industrial customers: build relationships and negotiate agreements.
+            		\item Large/industrial customers: build relationships and negotiate agreements.
             
-            		\item For domestic customers: \textbf{introducing differential tariffs} PED calculation.
+            		\item Domestic customers: \textbf{introduce differential tariffs}.
             
                 \end{itemize}
             
@@ -163,8 +155,6 @@
                     \item Hydro reservoir serves a similar overflow function as the interconnect but is much cheaper.
                     
                     \item Here, between 1600 and 2000, hydro is being fully utilized and the marginal value of additional capacity is \textsterling 45.
-                    
-                    	\note[item]{This value can help determine if additional capacity is worthwhile.}
                     
                 \end{itemize}   
             
@@ -199,9 +189,11 @@
     
     \subsection{Investing in Additional Capacity}
     
-    %
-    % CURRENT SETUP
-    %
+        \begin{frame}{Reduced CO\textsubscript{2} Limits - Current Setup}
+    
+       	\chartrampdown
+        
+    \end{frame}
     
     \begin{frame}{Reduced CO\textsubscript{2} Limits - Current Setup}
     
@@ -219,31 +211,16 @@
 
                 \item Unlike the previous case, this loss occurs on what is considered to be the \textit{average} day.  Long-term losses would likely be extensive.
 
-                \item What's happening?  Let's look at the utilization of sources as CO\textsubscript{2} ramps down.
-
             \end{itemize}
          
          \end{itemize}
         
     \end{frame}
-    
-    %
-    % RAMPING DOWN CO2 AND SOURCE COMPOSITION
-    %
-    
-    \begin{frame}{Reduced CO\textsubscript{2} Limits - Effect on Source Utilization}
-    	
-         \todo[inline,caption={}]{\textbf{Julian:} Trend in total generation source use per day as CO2 limit changes is more important than the actual schedule for a day with SO/CO2 reduction.}
-         
-        \todo[inline,caption={}]{\textbf{Mark:} Use a chart similar to Szymon's to show the effect of ramping down CO2 on TOTAL source use p/day.}
-        
-        \missingfigure
-        
+      
         % Coal is completely eliminated.  Coal is currently the prime cheap energy source, but it's just too carbon-heavy to have a place in this reduced carbon schedule.  This pushes up costs.
         
         % Again use of the interconnect, which is expensive.  But in this case as said it's being used on the average day, which is much more of a problem than using it as a rare overflow safety feature.
         
-    \end{frame}
     
     %
     % 1 GW INVESTMENT
@@ -316,7 +293,7 @@
     
   \begin{frame}{Carbon Credits Market}
   
-      Under stricter CO\textsubscript{2} limits EPower will be allocated 100000 units of CO\textsubscript{2}:
+ EPower will be allocated 100000 units of CO\textsubscript{2} emission:
       \small
         \begin{itemize}
             \item Fair price of carbon dioxide: £60
@@ -325,14 +302,21 @@
             \item Use carbon credits market
         \end{itemize}      
     
-    	\todo[inline,caption={}]{\textbf{Julian:} Make this chart larger--ditch the caption if necessary.}
+%    	\todo[inline,caption={}]{\textbf{Julian:} Make this chart larger--ditch the caption if necessary.}
         
-        \begin{figure}
-        \centering
-        	\includegraphics[width=0.8\textwidth]{Graphs/carbon_credit.pdf}
-            \small
-\caption{Expected profit and optimal production schedule with various prices of emission permits}
-        \end{figure}
+%         \begin{figure}
+%         \centering
+%         \footnotesize
+%         Expected profit and optimal production schedule
+%         	\includegraphics[width=\textwidth]{Graphs/carbon_credit.pdf}
+
+%         \end{figure}
+        
+        \renewcommand{\chartheight}{4.5cm}
+             \begin{figure}
+            	\centering
+                \chartcredit{output/carbon_credit_full.csv}
+            \end{figure}
                
         
     \end{frame}
@@ -343,9 +327,9 @@
     
    	\begin{frame}{Carbon Tax}    
     
-    	\todo[inline,caption={}]{\textbf{Mark:} motivate this by saying the considerations are largely similar to the scenarios being considered?  Essentially "there is another CO2-related scenario on the horizon.  Incorporating this into the current considerations will provide a better longer term/more durable strategy, etc."  No use them devising a policy for reduced CO2 (and investing tons of capital into particular sources) if it's not also at least reasonably compatible with the Paris Agreement changes which will come down the pipeline.}
+%    	\todo[inline,caption={}]{\textbf{Mark:} motivate this by saying the considerations are largely similar to the scenarios being considered?  Essentially "there is another CO2-related scenario on the horizon.  Incorporating this into the current considerations will provide a better longer term/more durable strategy, etc."  No use them devising a policy for reduced CO2 (and investing tons of capital into particular sources) if it's not also at least reasonably compatible with the Paris Agreement changes which will come down the pipeline.}
 
-        In light of Paris Agreement, EPower should prepare for "carbon tax". Following are likely to be impacted: 
+        In light of Paris Agreement, EPower should prepare for ``carbon tax". Following are likely to be impacted: 
         \small
             \begin{itemize}
             \item Market price of electricity
@@ -353,13 +337,18 @@
             \item Running cost of interconnect
             \end{itemize}
 
-            \todo[inline,caption={}]{\textbf{Julian:} At least drop Fig \# to avoid line break.}
 
+%              \begin{figure}
+%              \footnotesize Expected profit and optimal production schedule
+%             \centering
+%                 \includegraphics[width=\textwidth]{Graphs/carbon_tax.pdf}
+                
+%             \end{figure}
+            
+            \renewcommand{\chartheight}{4.5cm}
              \begin{figure}
-            \centering
-                \includegraphics[width=0.8\textwidth]{Graphs/carbon_tax.pdf}
-                \small
-            \caption{Expected profit and optimal production schedule with various tax levels}
+            	\centering
+                \chartcarbontax{output/carbon_tax_full.csv}
             \end{figure}
         
     \end{frame}
