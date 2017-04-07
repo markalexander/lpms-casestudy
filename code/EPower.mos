@@ -33,7 +33,7 @@ parameters
 	
 	! Report/output generation settings
 	RunFacetGenerationSchedule = true  ! Output optimal generation schedules?
-	RunFacetConstraintInfo = true     ! Output constraint info, fair prices, etc? (Lots of output!)
+	RunFacetConstraintInfo = false     ! Output constraint info, fair prices, etc? (Lots of output!)
 	RunFacetSourceExpansion = true     ! Output source expansion decision for CO2?
 	
 end-parameters
