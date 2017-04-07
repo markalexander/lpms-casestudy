@@ -404,14 +404,13 @@ end-procedure
 procedure make_csv(headings:list of string, rows:list of list of real, filename:string)
 	fopen(OutputDir + filename, F_OUTPUT)
 	! Header
-	forall(h in headings) do
-		write(",", h)
-	end-do
+	forall(h in gethead(headings, 1)) write(h)
+	forall(h in gettail(headings, -1)) write(",", h)
+	writeln
 	! Data
 	forall(r in rows) do
-		forall(x in r) do
-			write(",", x)
-		end-do
+		forall(x in gethead(r, 1)) write(x)
+		forall(x in gettail(r, -1)) write(",", x)
 		writeln
 	end-do
 	fclose(F_OUTPUT)
@@ -478,7 +477,7 @@ procedure make_report(title:string, tag:string)
 		forall(s in Source) do
 			make_heading(s, "-")
 			! Heading
-			t_head := ["Period", "Slack", "Fair Price (£)", "Valid from", "Valid to"]
+			t_head := ["Period", "Slack", "Fair Price", "ValidFrom", "ValidTo"]
 			t_data := []
 			forall(t in Times) do
 				t_row := []
@@ -584,7 +583,7 @@ procedure carbon_loop(carbon_allocation:real, tag:string)
 	! Open reporting file
 	fopen(OutputDir + tag + '.csv', F_OUTPUT)
 	
-	write("Profit,TotalRunningCost,TotalIncreaseCost,TotalEmissionCreditCost, Co2Price,")
+	write("Profit,TotalRunningCost,TotalIncreaseCost,TotalEmissionCreditCost,Co2Price,")
 	forall(s in Source) write(s,',')
 	writeln
 	
@@ -604,7 +603,7 @@ procedure carbon_loop(carbon_allocation:real, tag:string)
 		forall(s in Source) write(',',getsol(TotalEnergyGenerated(s)))
 		writeln
 		
-		EmissionsCreditPrice("CO2") += 4
+		EmissionsCreditPrice("CO2") += 10
 	until EmissionsCreditPrice("CO2") > 100
 	
 	fclose(F_OUTPUT)
