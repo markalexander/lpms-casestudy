@@ -3,28 +3,38 @@ model EPower
 uses "mmxprs";
 uses "mmsystem";
 
+! README:
+!
+! General run settings/params can be changed in the parameters section below.
+! Also use these to toggle which output you would like to see based on model or
+! aspect (facet) of the models.  Turning everything on results in a LOT 
+! of output to console and many CSV files generated, so if you are interested
+! in only one aspect it is recommended to only turn that one thing on.
+!
+! For understanding table output inside the model, note that we essentially
+! aim to build a list of headings and a 'matrix' (list of lists) of data, and pass
+! this to our make_table() or make_csv() procedures.
+
 !
 ! DECLARE PARAMETERS
 !
 
 parameters
-	! Report/output generation settings
-	ReportOptGenSched = true     ! Report optimal generation schedules?
-	ReportOutputCTInfo = true
-	ReportDemandCTInfo = true
-	ReportEmissionsCTInfo = true       ! Report emissions constraint information?
-	ReportHydroResCTInfo = true
-	ReportPumpCTInfo = true
-	ReportOutputCSV = true       ! Create CSV files for reports?
-	ReportOutputDir = 'output/'  ! Output directory for the CSV files
-	ReportMaxWidth = 120         ! Maximum width for console output
+	
+	OutputCSV = true                  ! Create CSV files for reporting?
+	OutputDir = 'output/'             ! Output directory for the CSV files
+	ConsoleMaxWidth = 120             ! Maximum width for console output
 	
 	! Which model do you want to run?
-	BaseCaseRun = true
-	VariableDemandRun = true
-	ReducedCO2Run = true
-	SourceExpansionRun = true
-	EmissionMarketRun = true
+	RunModelBaseCase = true            ! Run the base case model?
+	RunModelVariableDemand = true      ! Run the variable demand/multipliers model?
+	RunModelReducedCO2 = true          ! Run the reduced CO2 model?
+	RunModelEmissionsMarket = true     ! Run the emissions market model?
+	
+	! Report/output generation settings
+	RunFacetGenerationSchedule = true  ! Output optimal generation schedules?
+	RunFacetConstraintInfo = true      ! Output constraint info, fair prices, etc?
+	RunFacetSourceExpansion = true     ! Output source expansion decision for CO2?
 	
 end-parameters
 
@@ -70,7 +80,13 @@ declarations
 	Pump:                     array(Times) of mpvar  ! Energy pumped to reservoir at time t (MW)
 	HydroReserve:             array(Times) of mpvar  ! Water remaining in reservoir at end of time t (MWh)
 	Increase:                 array(Source,Times) of mpvar  ! Increase from source s at time t
-
+	
+	! Misc/intermediate output storage for table data and loops
+	t_head:                   list of string
+	t_data:                   list of list of real
+	t_row:                    list of real
+	Mu:                       real
+	 
 end-declarations
 
 
@@ -81,15 +97,14 @@ end-declarations
 ! N.B. actual definitions are relegated to the bottom of the file. 
 forward function getprevperiod(t:integer):integer
 forward procedure initialize_data
-forward procedure print_heading(title:string, uchar:string)
-forward	procedure generate_report(title:string, tag:string)
+forward procedure make_heading(title:string, uchar:string)
+forward	procedure make_report(title:string, tag:string)
 forward procedure carbon_loop(carbon_allocation:real, tag:string)
-forward	procedure t_rule(char:text, width:integer)
-forward	procedure t_rule(char:text)
-forward	procedure t_rule
-forward	procedure t_row(cells:list of string, cw:integer)
-forward	procedure t_row(cells:list of string)
+forward function lc(L:list of real):list of real
+forward procedure make_table(headings:list of string, rows:list of list of real)
+forward procedure make_csv(headings:list of string, rows:list of list of real, filename:string)
 
+	
 !
 ! LOAD DATA FROM FILE
 !
@@ -148,9 +163,9 @@ TotalProfit := TotalRevenue - TotalRunningCost - TotalIncreaseCost
 !
 
 ! Daily scenario planning is dependent on Base Case
-if BaseCaseRun or VariableDemandRun then
+if RunModelBaseCase or RunModelVariableDemand then
 	maximize(TotalProfit)
-	generate_report("BASE CASE", 'base')
+	make_report("BASE CASE", 'base')
 	
 	! Store generation schedule as long term plan
 	forall(s in Source, t in Times) do
@@ -159,86 +174,67 @@ if BaseCaseRun or VariableDemandRun then
 	end-do
 end-if
 
+
 !
-! SCENARIO: REDUCED CO2 EMISSION LIMIT
+! SCENARIO: REDUCED CO2 EMISSIONS LIMIT
 !
 
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 
-if ReducedCO2Run then
+if RunModelReducedCO2 then
 
-	! Ramp down CO2 limit to 50%
-	print_heading("DAILY SOURCE UTILIZATION BY CO2 REDUCTION", "=")
-	cw := round(ReportMaxWidth/7)
-	t_rule
-	write(strfmt("Reduction (%)", cw))
+	make_heading("DAILY SOURCE UTILIZATION BY CO2 REDUCTION", "=")
+	
+	! Iteratively ramp down CO2 limit to 50%
+	! Header
+	t_head := ["Reduction (%)"]
 	forall(s in Source) do
-		write(strfmt(s, cw))
+		t_head += [s]
 	end-do
-	writeln
-	t_rule	
-	Factor := 0.9
+	t_head += ["Profit (£)"]
+	! Data
+	t_data := []
+	Mu := 0.9
 	repeat
-		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Factor
-		
+		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Mu
 		maximize(TotalProfit)
-		
-		write(strfmt((1-Factor)*100, cw))
+		t_row := [(1-Mu)*100]
 		forall(s in Source) do
-			write(strfmt(getsol(TotalEnergyGenerated(s)), cw))
+			t_row += [getsol(TotalEnergyGenerated(s))]
 		end-do
-		writeln
-		
-		Factor -= 0.05
-	until Factor < 0.5
-	t_rule
-		
-		
-	fopen(ReportOutputDir + 'co2rampdown.csv', F_OUTPUT)
-	write("Reduction")
-	forall(s in Source) do
-		write(",", s)
-	end-do
-	write(",Profit")
-	writeln
-	Factor := 0.9
-	repeat
-		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * Factor
-		
-		maximize(TotalProfit)
-		
-		write((1-Factor)*100)
-		forall(s in Source) do
-			write(',',getsol(TotalEnergyGenerated(s)))
-		end-do
-		write(",", strfmt(getobjval/1e6, 0, 3))
-		writeln
-		
-		Factor -= 0.05
-	until Factor < 0.5
-	fclose(F_OUTPUT)
+		t_row += [getobjval]
+		t_data += [lc(t_row)]
+		Mu -= 0.05
+	until Mu < 0.5
+	
+	! Print table and create CSV
+	make_table(t_head, t_data)
+	make_csv(t_head, t_data, "co2_rampdown.csv")
 	
 	
-	! Full reporting for the 50% reduction
-	generate_report("STRICTER CO2 LIMITS - 50%", 'co2')
+	! Run a full report for the final 50% reduction case
+	make_report("STRICTER CO2 LIMITS - 50%", 'co2')
 	
 	! Source expansion
-	if SourceExpansionRun then
+	if RunFacetSourceExpansion then
 	
 		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s) <= EmissionsLimit("CO2") * 0.5
 		
-		print_heading("SOURCE EXPANSION DECISION", "=")
-		cw := round(ReportMaxWidth/9)
-		writeln("-"*ReportMaxWidth)
-		write(strfmt("Inrement:", cw), strfmt("Source:", cw), strfmt("Profit (£m)", cw))
-		forall(s in Source) write(strfmt(s, cw))
-		writeln
-		writeln("-"*ReportMaxWidth)
+		make_heading("SOURCE EXPANSION DECISION", "=")
 		
-		forall(OutputIncrease in [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) do
+		! Build header
+		t_head := ["Add (MW)", "Profit"]
+		forall(s in Source) do
+			t_head += [s]
+		end-do
+		
+		! Build data
+		forall(s in Source) do
+			t_data := []
 			
-			forall(s in Source) do
-				
+			make_heading(s, "-")
+			forall(OutputIncrease in [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) do
+	
 				if s = "Wind" then 
 					! Company is about to finish instalation of wind capacity (see FAQ)
 					MaxOutput("Wind") :=  MaxOutput("Wind") + (OutputIncrease / 2) 
@@ -264,18 +260,20 @@ if ReducedCO2Run then
 				! Reoptimize
 				maximize(TotalProfit)
 				
-				! Output
-				write(strfmt(OutputIncrease, cw))
-				write(strfmt(s, cw), "      ", strfmt(getobjval/1e6, 0, 3))
-				forall(so in Source) write(strfmt(getsol(TotalEnergyGenerated(so)), cw))
-				writeln
-				
-				! Reset data for re-use
-				initialize_data
-			end-do
+				t_row := [OutputIncrease, getobjval]
+				forall(so in Source) do
+					t_row += [getsol(TotalEnergyGenerated(so))]
+				end-do
 			
-			writeln("."*ReportMaxWidth)
+				t_data += [lc(t_row)]
+			
+				! Reset data for next loop
+				initialize_data
+				
+			end-do
 		
+			make_table(t_head, t_data)
+			
 		end-do
 		
 		EmmissionCS("CO2") := sum(s in Source) TotalEnergyGenerated(s)*Emissions("CO2",s)<=EmissionsLimit("CO2")
@@ -292,7 +290,7 @@ end-if
 ! SCENARIO: VARIABLE DEMAND/WIND AVAIL.
 !
 
-if VariableDemandRun then
+if RunModelVariableDemand then
 	
 	! The values for nuclear, coal and gas in last period need to be consistent with
 	! the long term plan. 
@@ -314,7 +312,7 @@ if VariableDemandRun then
 	end-do
 	
 	maximize(TotalProfit)
-	generate_report("CUSTOM MULTIPLIERS", 'multipliers')
+	make_report("CUSTOM MULTIPLIERS", 'multipliers')
 
 end-if
 !
@@ -326,7 +324,7 @@ initialize_data
 
 ! Remove hard emissions constraints
 
-if EmissionMarketRun then
+if RunModelEmissionsMarket then
 	EmmissionCS('CO2') := 0
 	
 	! Reset constraints from above
@@ -355,7 +353,7 @@ carbon_loop(EmissionsLimit("CO2") * 0.5, 'carbon_credit')
 !
 
 ! The following are used mostly for convenience and to avoid code repition, e.g.
-! when printing out standard reporting or creating CSV files.
+! when printing out standard reporting or creating tables/CSV files.
 ! They are not necessary for understanding the model in general.
 
 ! Get the index of the 'previous' time period for given current time period t.
@@ -369,114 +367,103 @@ function getprevperiod(t:integer):integer
 	returned := ((((t-2) mod n) + n) mod n) + 1
 end-function
 
-! Print a table rule
-procedure t_rule(char:text, width:integer)
-	writeln(char*width)
-end-procedure
-procedure t_rule(char:text)
-	width := ReportMaxWidth
-	t_rule(char, width)
-end-procedure
-procedure t_rule
-	char := "-"
-	t_rule(char)
-end-procedure
-
-! Print a table row
-procedure t_row(cells:list of string, cw:integer)
-	returned := ""
-	forall(c in cells) do
-		write(strfmt(c, cw))
-	end-do
-	writeln
-end-procedure
-procedure t_row(cells:list of string)
-	n := getsize(cells)
-	if n < 4 then 
-		cw := 20
-	else
-		cw := round(ReportMaxWidth / getsize(cells))
-	end-if
-	t_row(cells, cw)
-end-procedure
+! List copy function - since for some reason Mosel passes lists by reference
+function lc(L:list of real):list of real
+	returned := gethead(L, getsize(L))
+end-function
 
 ! Print a simple heading
-procedure print_heading(title:string, uchar:string)
+procedure make_heading(title:string, uchar:string)
 	writeln("\n", title, "\n", uchar*getsize(title), "\n")
 end-procedure
 
-! Print a standard table output for the main model.
+! Build a table from a list of headings and a 'matrix' of data
+procedure make_table(headings:list of string, rows:list of list of real)
+	ncols := getsize(headings)
+	colwidth := round(ConsoleMaxWidth/ncols)
+	tablewidth := colwidth*ncols
+	! Header
+	writeln("-"*tablewidth)
+	forall(h in headings) do
+		write(strfmt(h, colwidth))
+	end-do
+	writeln
+	writeln("-"*tablewidth)
+	! Data
+	forall(r in rows) do
+		forall(x in r) do
+			write(strfmt(x, colwidth, 0))
+		end-do
+		writeln
+	end-do
+	writeln("-"*tablewidth)
+end-procedure
+
+! Build a CSV file from a list of headings and a 'matrix' of data
+procedure make_csv(headings:list of string, rows:list of list of real, filename:string)
+	fopen(OutputDir + filename, F_OUTPUT)
+	! Header
+	forall(h in headings) do
+		write(",", h)
+	end-do
+	! Data
+	forall(r in rows) do
+		forall(x in r) do
+			write(",", x)
+		end-do
+		writeln
+	end-do
+	fclose(F_OUTPUT)
+end-procedure
+
+! Print a standard table output for the main model and its variations.
 ! Saves us repeating this code for every variation of the model.
-procedure generate_report(title:string, tag:string)
+procedure make_report(title:string, tag:string)
 
 	writeln("\n\n")
-	print_heading("SCENARIO: " + title, "#")
+	make_heading("SCENARIO: " + title, "#")
 
 	!
 	! Basic information
 	!
 	
-	print_heading("REVENUE BREAKDOWN", "=")
+	make_heading("REVENUE BREAKDOWN", "=")
 	
-	t_row([" ", "(£m)"])
-	t_row(["Total revenue:", strfmt(getsol(TotalRevenue)/1e6, 0, 3)])
-	t_row(["Running costs:", "(" + strfmt(getsol(TotalRunningCost)/1e6, 0, 3) + ")"])
-	t_row(["Increase costs:", "(" + strfmt(getsol(TotalIncreaseCost)/1e6, 0, 3) + ")"])
-	t_row([" ", "----------"])
-	t_row(["Total profit:", strfmt(getsol(TotalProfit)/1e6, 0, 3)])
-	t_row([" ", "----------"])
-	writeln
+	make_table(
+		["TotalRevenue", "TotalRunningCosts",
+			"TotalIncreaseCosts", "TotalProfit"],
+		[[getsol(TotalRevenue), getsol(TotalRunningCost),
+			getsol(TotalIncreaseCost), getsol(TotalProfit)]])
 	
 	!
 	! Optimal generation schedule
 	!
 	
-	if ReportOptGenSched then
-		print_heading("GENERATION SCHEDULE", "=")
-		
-		cw := round(ReportMaxWidth/7)
-		
-		t_rule
-		write(strfmt(" ", cw))
-		forall(t in Times) write(strfmt(t, cw))
-		writeln
-		t_rule
+	if RunFacetGenerationSchedule then
+		make_heading("GENERATION SCHEDULE", "=")
+		! Header
+		t_head := ["Period", "StartTime", "EndTime"]
 		forall(s in Source) do
-			write(strfmt(s, cw))
-			forall(t in Times) write(strfmt(getsol(Generate(s,t)), cw))
-			writeln
+			t_head += [s]
 		end-do
-		
-		t_rule(".")
-		write(strfmt("Reservoir lvl", cw))
-		forall(t in Times) write(strfmt(getsol(HydroReserve(t)), cw))
-		writeln
-		t_rule
-		
-		! Output a standard CSV file for the model
-		if ReportOutputCSV then
-			makedir(ReportOutputDir)
-			fopen(ReportOutputDir + tag + '.csv', F_OUTPUT)
-			! Headers
-			write('Period,StartTime,EndTime')
+		t_head += ["Pump", "ResLvl"]
+		! Data
+		t_data := []
+		currtime := 0.0
+		forall(t in Times) do
+			starttime := currtime
+			currtime += PeriodLength(t)
+			endtime := currtime
+			t_row := [t, starttime, endtime]
 			forall(s in Source) do
-				write(',', s)
+				t_row += [getsol(Generate(s,t))]
 			end-do
-			writeln
-			! Data
-			currtime := 0.0
-			forall(t in Times) do
-				starttime := currtime
-				currtime += PeriodLength(t)
-				endtime := currtime
-				write(t, ',', starttime, ',', endtime)
-				forall(s in Source) do
-					write(',', getsol(Generate(s,t)))
-				end-do
-				writeln
-			end-do
-			fclose(F_OUTPUT)
-		end-if
+			t_row += [getsol(Pump(t)), getsol(HydroReserve(t))]
+			t_data += [lc(t_row)]
+		end-do
+		! Output table and save CSV
+		make_table(t_head, t_data)
+		make_csv(t_head, t_data, tag + "_generation_schedule.csv")
 	end-if
 	
 	!
@@ -484,43 +471,48 @@ procedure generate_report(title:string, tag:string)
 	!
 	
 	! Output
-	if ReportOutputCTInfo then
-		print_heading("SOURCE OUTPUT CONSTRAINTS", "=")
-		t_rule
-		t_row(["Source", "Period", "Slack", "Fair Price (£)", "Valid from", "Valid to"])
-		t_rule
+	if RunFacetConstraintInfo then
+		make_heading("SOURCE OUTPUT CONSTRAINTS", "=")
+		writeln("N.B. fair prices only valid when slack is zero.  An empty table means the constraint was not hit during any period.")
 		forall(s in Source) do
+			make_heading(s, "-")
+			! Heading
+			t_head := ["Period", "Slack", "Fair Price (£)", "Valid from", "Valid to"]
+			t_data := []
 			forall(t in Times) do
-				if getslack(OutputCS(s,t)) = 0 then
-					t_row([s, strfmt(t, 1), "0",
-						strfmt(getdual(OutputCS(s,t)), 1),
-						strfmt(getsensrng(XPRS_DN, OutputCS(s,t)), 1),
-						strfmt(getsensrng(XPRS_UP, OutputCS(s,t)), 1)])
-				else
-					t_row([s, strfmt(t, 1), strfmt(getslack(OutputCS(s,t)), 1), "--", "--", "--"])
+				t_row := []
+				slack := getslack(OutputCS(s,t))
+				if slack = 0 then
+					t_row += [t, 0,
+						getdual(OutputCS(s,t)),
+						getsensrng(XPRS_DN, OutputCS(s,t)),
+						getsensrng(XPRS_UP, OutputCS(s,t))]
+				!else
+					!t_row += [t, slack, 0, 0, 0]
 				end-if
+				t_data += [lc(t_row)]
 			end-do
-			t_rule(".")
+			make_table(t_head, t_data)
+			make_csv(t_head, t_data, tag + "_constraint_output_" + s + '.csv')
 		end-do
-	end-if
-	writeln
 	
-	! Demand
-	if ReportDemandCTInfo then
-		print_heading("DEMAND CONSTRAINTS", "=")
+		! Demand
+		make_heading("DEMAND CONSTRAINTS", "=")
+		t_data := []
 		forall(t in Times) do
 			if getslack(DemandCS(t)) = 0 then
-				writeln("Fair price of demand in period t=" + t + " is: £", getdual(DemandCS(t)),
-						", valid for (", getsensrng(XPRS_DN, DemandCS(t)),
-						" ,", getsensrng(XPRS_UP, DemandCS(t)),')')
-				writeln
+				t_data += [[
+					t,
+					getdual(DemandCS(t)),
+					getsensrng(XPRS_DN, DemandCS(t)),
+					getsensrng(XPRS_UP, DemandCS(t))]]
 			end-if
 		end-do
-	end-if
+		make_table(t_head, t_data)
+		make_csv(t_head, t_data, tag + "_constraint_demand.csv")
 	
-	! Emissions
-	if ReportEmissionsCTInfo then
-		print_heading("EMISSIONS CONSTRAINTS", "=")
+		! Emissions
+		make_heading("EMISSIONS CONSTRAINTS", "=")
 		HasHitCT := false
 		forall(e in Emiss) do
 			if getslack(EmmissionCS(e)) = 0 then
@@ -534,11 +526,9 @@ procedure generate_report(title:string, tag:string)
 		if HasHitCT <> true then
 			writeln("Emissions utilization never reaches capacity")
 		end-if
-	end-if
 	
-	! Hydro reservoir
-	if ReportHydroResCTInfo then
-		print_heading("HYDRO CAPACITY CONSTRAINTS", "=")
+		! Hydro reservoir
+		make_heading("HYDRO CAPACITY CONSTRAINTS", "=")
 		HasHitCT := false
 		forall(t in Times) do
 			if getslack(HydroReserveCS(t)) = 0 then
@@ -552,11 +542,9 @@ procedure generate_report(title:string, tag:string)
 		if HasHitCT <> true then
 			writeln("Hydro storage never reaches capacity")
 		end-if
-	end-if
 	
-	! Pump
-	if ReportPumpCTInfo then
-		print_heading("PUMP CONSTRAINTS", "=")
+		! Pump
+		make_heading("PUMP CONSTRAINTS", "=")
 		HasHitCT := false
 		forall(t in Times) do
 			if getslack(PumpCS(t)) = 0 then
@@ -574,6 +562,8 @@ procedure generate_report(title:string, tag:string)
 	
 end-procedure
 
+! Initialize data from file
+! Here as a procedure for easy re-use in iterative models
 procedure initialize_data
 	initializations from "EPower.dat"
 		Emiss Source Times PeriodLength Demand
@@ -585,12 +575,13 @@ procedure initialize_data
 	end-initializations
 end-procedure
 
+! Convenience procedure to loop through carbon market prices/tax values
 procedure carbon_loop(carbon_allocation:real, tag:string)
 	! Reset emission prices to 0
 	forall(e in Emiss) EmissionsCreditPrice(e) := 0
 	
 	! Open reporting file
-	fopen(ReportOutputDir + tag + '.csv', F_OUTPUT)
+	fopen(OutputDir + tag + '.csv', F_OUTPUT)
 	
 	write("Profit,TotalRunningCost,TotalIncreaseCost,TotalEmissionCreditCost, Co2Price,")
 	forall(s in Source) write(s,',')
