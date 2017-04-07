@@ -33,7 +33,7 @@ parameters
 	
 	! Report/output generation settings
 	RunFacetGenerationSchedule = true  ! Output optimal generation schedules?
-	RunFacetConstraintInfo = true      ! Output constraint info, fair prices, etc?
+	RunFacetConstraintInfo = true     ! Output constraint info, fair prices, etc? (Lots of output!)
 	RunFacetSourceExpansion = true     ! Output source expansion decision for CO2?
 	
 end-parameters
@@ -98,7 +98,7 @@ end-declarations
 forward function getprevperiod(t:integer):integer
 forward procedure initialize_data
 forward procedure make_heading(title:string, uchar:string)
-forward	procedure make_report(title:string, tag:string)
+forward	procedure make_report(tag:string)
 forward procedure carbon_loop(carbon_allocation:real, tag:string)
 forward function lc(L:list of real):list of real
 forward procedure make_table(headings:list of string, rows:list of list of real)
@@ -165,7 +165,10 @@ TotalProfit := TotalRevenue - TotalRunningCost - TotalIncreaseCost
 ! Daily scenario planning is dependent on Base Case
 if RunModelBaseCase or RunModelVariableDemand then
 	maximize(TotalProfit)
-	make_report("BASE CASE", 'base')
+	
+	writeln("\n\n")
+	make_heading("SCENARIO: BASE CASE", "#")
+	make_report('base')
 	
 	! Store generation schedule as long term plan
 	forall(s in Source, t in Times) do
@@ -182,6 +185,9 @@ end-if
 TotalCO2Emmission := sum(s in Source) TotalEnergyGenerated(s) * Emissions("CO2",s)
 
 if RunModelReducedCO2 then
+	
+	writeln("\n\n")
+	make_heading("SCENARIO: STRICTER CO2 LIMITS - GENERAL", "#")
 
 	make_heading("DAILY SOURCE UTILIZATION BY CO2 REDUCTION", "=")
 	
@@ -213,7 +219,11 @@ if RunModelReducedCO2 then
 	
 	
 	! Run a full report for the final 50% reduction case
-	make_report("STRICTER CO2 LIMITS - 50%", 'co2')
+	
+	writeln("\n\n")
+	make_heading("SCENARIO: STRICTER CO2 LIMITS - 50% CASE", "#")
+	
+	make_report('co2')
 	
 	! Source expansion
 	if RunFacetSourceExpansion then
@@ -293,6 +303,9 @@ end-if
 
 if RunModelVariableDemand then
 	
+	writeln("\n\n")
+	make_heading("SCENARIO: 20% INCREASE IN WIND AND DEMAND", "#")
+	
 	! The values for nuclear, coal and gas in last period need to be consistent with
 	! the long term plan. 
 	forall(s in Source) do
@@ -313,7 +326,7 @@ if RunModelVariableDemand then
 	end-do
 	
 	maximize(TotalProfit)
-	make_report("CUSTOM MULTIPLIERS", 'multipliers')
+	make_report('multipliers')
 
 end-if
 !
@@ -420,10 +433,7 @@ end-procedure
 
 ! Print a standard table output for the main model and its variations.
 ! Saves us repeating this code for every variation of the model.
-procedure make_report(title:string, tag:string)
-
-	writeln("\n\n")
-	make_heading("SCENARIO: " + title, "#")
+procedure make_report(tag:string)
 
 	!
 	! Basic information
@@ -505,6 +515,7 @@ procedure make_report(title:string, tag:string)
 			if getslack(DemandCS(t)) = 0 then
 				t_data += [[
 					t,
+					0,
 					getdual(DemandCS(t)),
 					getsensrng(XPRS_DN, DemandCS(t)),
 					getsensrng(XPRS_UP, DemandCS(t))]]
